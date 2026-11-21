@@ -234,7 +234,8 @@
 </div>
 <audio id="audio"></audio>
 <script>
-  // === БЛОК 7: СТИКЕРЫ, INDEXEDDB И ЧТЕНИЕ ОБЛОЖЕК ИЗ MP3 ===
+<script>
+  // === БЛОК 7: СТИКЕРЫ, РЕАЛЬНАЯ ФАЙЛОВАЯ СИСТЕМА ANDROID И ОБЛОЖКИ ===
   const ICONS = {
     crown: `<svg viewBox="0 0 32 32"><path d="M4 24 L3 10 L11 16 L16 6 L21 16 L29 10 L28 24 Z" fill="#b80710" stroke="#000" stroke-width="2.8" stroke-linejoin="round"/><line x1="5" y1="27" x2="27" y2="27" stroke="#000" stroke-width="3" stroke-linecap="round"/></svg>`,
     headphones: `<svg viewBox="0 0 32 32"><path d="M6 19 C6 10, 26 10, 26 19" fill="none" stroke="#000" stroke-width="3.5" stroke-linecap="round"/><rect x="3" y="16" width="6" height="10" rx="3" fill="#b80710" stroke="#000" stroke-width="2.5"/><rect x="23" y="16" width="6" height="10" rx="3" fill="#b80710" stroke="#000" stroke-width="2.5"/></svg>`,
@@ -245,19 +246,51 @@
   function getSticker(name, size) { return `<span class="sticker" style="width:${size}px;height:${size}px;">${ICONS[name] || ''}</span>`; }
   document.querySelectorAll('[data-ico]').forEach(el => { el.innerHTML = ICONS[el.dataset.ico] || ''; });
 
-  let db = null;
-  function openDB() {
-    return new Promise(res => {
-      const req = indexedDB.open('SpiderPlayerMobileDB', 2);
-      req.onupgradeneeded = e => {
-        const d = e.target.result;
-        if (!d.objectStoreNames.contains('files')) d.createObjectStore('files');
-      };
-      req.onsuccess = e => { db = e.target.result; res(db); };
-    });
+  const FS = () => (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.Filesystem) ? window.Capacitor.Plugins.Filesystem : null;
+  const APP_DIR = 'SpiderPlayer';
+  const DB_FILE = 'SpiderPlayer/library.json';
+
+  function bufToBase64(buf) {
+    let binary = '';
+    const bytes = new Uint8Array(buf);
+    const chunk = 0x8000;
+    for (let i = 0; i < bytes.length; i += chunk) {
+      binary += String.fromCharCode.apply(null, bytes.subarray(i, i + chunk));
+    }
+    return btoa(binary);
   }
-  function dbPut(key, val) { return new Promise(res => { const tx = db.transaction('files', 'readwrite'); tx.objectStore('files').put(val, key); tx.oncomplete = res; }); }
-  function dbGet(key) { return new Promise(res => { const tx = db.transaction('files', 'readonly'); const r = tx.objectStore('files').get(key); r.onsuccess = () => res(r.result); r.onerror = () => res(null); }); }
+
+  async function ensureAppFolder() {
+    const fs = FS();
+    if (!fs) return;
+    try { await fs.requestPermissions(); } catch (e) {}
+    try { await fs.mkdir({ path: APP_DIR, directory: 'DOCUMENTS', recursive: true }); } catch (e) {}
+  }
+
+  async function saveRealMp3(fileName, arrayBuf) {
+    const fs = FS();
+    const clean = fileName.replace(/[\\/:*?"<>|]/g, '_');
+    const relPath = `${APP_DIR}/${clean}`;
+    if (fs) {
+      await ensureAppFolder();
+      await fs.writeFile({ path: relPath, data: bufToBase64(arrayBuf), directory: 'DOCUMENTS', recursive: true });
+      return relPath;
+    }
+    return null;
+  }
+
+  async function readRealMp3Url(relPath) {
+    const fs = FS();
+    if (!fs) return null;
+    try {
+      const uriRes = await fs.getUri({ path: relPath, directory: 'DOCUMENTS' });
+      if (window.Capacitor && window.Capacitor.convertFileSrc) {
+        return window.Capacitor.convertFileSrc(uriRes.uri);
+      }
+      const fileRes = await fs.readFile({ path: relPath, directory: 'DOCUMENTS' });
+      return `data:audio/mpeg;base64,${fileRes.data}`;
+    } catch (e) { return null; }
+  }
 
   async function extractMp3CoverFromBuffer(arrayBuf) {
     try {
@@ -272,13 +305,9 @@
               const mime = isJpg ? 'image/jpeg' : 'image/png';
               let end = bytes.length;
               if (isJpg) {
-                for (let k = j + 2; k < bytes.length - 1; k++) {
-                  if (bytes[k] === 0xFF && bytes[k+1] === 0xD9) { end = k + 2; break; }
-                }
+                for (let k = j + 2; k < bytes.length - 1; k++) { if (bytes[k] === 0xFF && bytes[k+1] === 0xD9) { end = k + 2; break; } }
               } else {
-                for (let k = j + 8; k < bytes.length - 8; k++) {
-                  if (bytes[k] === 0x49 && bytes[k+1] === 0x45 && bytes[k+2] === 0x4E && bytes[k+3] === 0x44) { end = k + 8; break; }
-                }
+                for (let k = j + 8; k < bytes.length - 8; k++) { if (bytes[k] === 0x49 && bytes[k+1] === 0x45 && bytes[k+2] === 0x4E && bytes[k+3] === 0x44) { end = k + 8; break; } }
               }
               const imgBlob = new Blob([bytes.slice(j, end)], { type: mime });
               return await new Promise(r => { const fr = new FileReader(); fr.onload = () => r(fr.result); fr.readAsDataURL(imgBlob); });
@@ -290,14 +319,37 @@
     return null;
   }
 
-  let state = JSON.parse(localStorage.getItem('spp_mob_state') || '{"tracks":[],"playlists":[],"hasBg":false,"blur":false,"snow":false,"pcIp":""}');
-  function saveState() { try { localStorage.setItem('spp_mob_state', JSON.stringify(state)); } catch (e) {} }
-  // === БЛОК 8: ЗАГРУЗКА MP3 В ТЕЛЕФОН И НАВИГАЦИЯ ПО ВКЛАДКАМ ===
+  let state = { tracks: [], playlists: [], hasBg: false, blur: false, snow: false, pcIp: '' };
+
+  async function loadStateFromDisk() {
+    const fs = FS();
+    if (fs) {
+      await ensureAppFolder();
+      try {
+        const res = await fs.readFile({ path: DB_FILE, directory: 'DOCUMENTS', encoding: 'utf8' });
+        if (res && res.data) { state = JSON.parse(res.data); return; }
+      } catch (e) {}
+    }
+    const backup = localStorage.getItem('spp_mob_state');
+    if (backup) state = JSON.parse(backup);
+  }
+
+  async function saveState() {
+    try { localStorage.setItem('spp_mob_state', JSON.stringify(state)); } catch (e) {}
+    const fs = FS();
+    if (fs) {
+      try {
+        await ensureAppFolder();
+        await fs.writeFile({ path: DB_FILE, data: JSON.stringify(state), directory: 'DOCUMENTS', encoding: 'utf8', recursive: true });
+      } catch (e) {}
+    }
+  }
+  // === БЛОК 8: ЗАГРУЗКА БИБЛИОТЕКИ С ДИСКА И ДОБАВЛЕНИЕ MP3 ===
   const audio = document.getElementById('audio');
   let queue = [], curIdx = -1, curId = '', activePlId = null, isShuffle = false, repeatMode = 0, fadeEnabled = true;
 
   window.addEventListener('DOMContentLoaded', async () => {
-    await openDB();
+    await loadStateFromDisk();
     document.getElementById('pcIpInput').value = state.pcIp || '';
     await applyEffects();
     renderTracks();
@@ -318,15 +370,15 @@
     for (const f of files) {
       const id = 'loc_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6);
       const buf = await f.arrayBuffer();
-      await dbPut(id, { buf, type: f.type || 'audio/mpeg' });
+      const relPath = await saveRealMp3(f.name, buf);
       const cov = await extractMp3CoverFromBuffer(buf);
       const cleanName = f.name.replace(/\.[^/.]+$/, '');
       const parts = cleanName.split(' - ');
       const artist = parts.length > 1 ? parts.at(0).trim() : 'Неизвестный исполнитель';
       const title = parts.length > 1 ? parts.slice(1).join(' - ').trim() : cleanName;
-      state.tracks.push({ id, title, artist, source: 'local', cover: cov });
+      state.tracks.push({ id, title, artist, source: 'local', localPath: relPath, cover: cov });
     }
-    saveState();
+    await saveState();
     renderTracks();
   }
   // === БЛОК 9: ОТРИСОВКА ТРЕКОВ И ПЛЕЙЛИСТОВ (ДВУСТОРОННЯЯ СИНХРОНИЗАЦИЯ) ===
@@ -447,7 +499,7 @@
   async function syncFromPC() {
     const ip = document.getElementById('pcIpInput').value.trim().replace(/^https?:\/\//, '');
     if (!ip) return;
-    state.pcIp = ip; saveState();
+    state.pcIp = ip; await saveState();
     const st = document.getElementById('syncStatus');
     st.innerText = '⏳ Подключаемся к ПК...';
     try {
@@ -467,7 +519,7 @@
         localPl.tracks = [];
         pl.tracks.forEach(pPath => { const tid = hashPath(pPath); if (state.tracks.some(x => x.id === tid) && !localPl.tracks.includes(tid)) localPl.tracks.push(tid); });
       }
-      saveState(); renderTracks(); renderPlaylists();
+      await saveState(); renderTracks(); renderPlaylists();
       st.innerText = `✅ Готово! Всего треков с ПК: ${pcData.tracks.length} (новых: ${added})`;
     } catch (e) { st.innerText = '❌ Ошибка: ' + e.message; }
   }
@@ -482,12 +534,16 @@
       if (!resp.ok) throw new Error('HTTP error');
       const buf = await resp.arrayBuffer();
       const cov = await extractMp3CoverFromBuffer(buf);
-      await dbPut(t.id, { buf, type: 'audio/mpeg' });
+      const fileName = `${t.artist !== 'Неизвестный исполнитель' ? t.artist + ' - ' : ''}${t.title}.mp3`;
+      const relPath = await saveRealMp3(fileName, buf);
+      if (!relPath) throw new Error('FS error');
+      t.localPath = relPath;
       if (cov) t.cover = cov;
-      t.source = 'local'; saveState();
+      t.source = 'local';
+      await saveState();
       if (!silent) { renderTracks(); if (activePlId) renderPlaylists(); }
       return true;
-    } catch (e) { if (btn) btn.innerText = '📥'; if (!silent) alert('Не удалось скачать трек.'); return false; }
+    } catch (e) { if (btn) btn.innerText = '📥'; if (!silent) alert('Не удалось сохранить файл в телефон.'); return false; }
   }
 
   async function downloadPlaylistOffline(plId) {
@@ -497,30 +553,33 @@
     const btn = document.getElementById('btnDlAllPl');
     let done = 0;
     for (const t of toDownload) {
-      if (btn) btn.innerText = `⏳ Скачивание: ${done + 1} из ${toDownload.length}...`;
+      if (btn) btn.innerText = `⏳ Сохранение в Documents: ${done + 1} из ${toDownload.length}...`;
       if (await downloadTrackOffline(t.id, true)) done++;
     }
     renderTracks(); renderPlaylists();
-    alert(`Готово! Сохранено в телефон: ${done} из ${toDownload.length} треков.`);
+    alert(`Готово! Сохранено в «Мои файлы -> Documents -> SpiderPlayer»: ${done} из ${toDownload.length} треков.`);
   }
 
   async function uploadTrackToPC(trackId) {
     if (!state.pcIp) { alert('Сначала укажите IP-адрес ПК во вкладке «ПК / Фон»!'); return; }
     const t = state.tracks.find(x => x.id === trackId);
-    if (!t) return;
+    if (!t || !t.localPath) return;
     const btn = document.getElementById('upBtn_' + trackId);
     if (btn) btn.innerText = '⏳';
     try {
-      const item = await dbGet(t.id);
-      if (!item) return;
-      const blob = item.buf ? new Blob([item.buf], { type: item.type || 'audio/mpeg' }) : item;
+      const fs = FS();
+      const fileRes = await fs.readFile({ path: t.localPath, directory: 'DOCUMENTS' });
+      const byteChars = atob(fileRes.data);
+      const byteNums = new Array(byteChars.length);
+      for (let i = 0; i < byteChars.length; i++) byteNums[i] = byteChars.charCodeAt(i);
+      const blob = new Blob([new Uint8Array(byteNums)], { type: 'audio/mpeg' });
       const fileName = `${t.artist !== 'Неизвестный исполнитель' ? t.artist + ' - ' : ''}${t.title}.mp3`;
       const resp = await fetch(`http://${state.pcIp}/api/upload?filename=${encodeURIComponent(fileName)}`, { method: 'POST', body: blob });
       const data = await resp.json();
-      if (data.ok) { t.pcPath = data.path; saveState(); renderTracks(); }
+      if (data.ok) { t.pcPath = data.path; await saveState(); renderTracks(); }
     } catch (e) { if (btn) btn.innerText = '📤'; alert('Не удалось отправить на ПК.'); }
   }
-  // === БЛОК 11: ВОСПРОИЗВЕДЕНИЕ, ОЧЕРЕДЬ ВИНИЛА И ШТОРКА SAMSUNG ===
+  // === БЛОК 11: ВОСПРОИЗВЕДЕНИЕ ИЗ DOCUMENTS/SPIDERPLAYER, ОЧЕРЕДЬ И ШТОРКА ===
   function updateMediaSession(track, coverUrl) {
     if (!('mediaSession' in navigator)) return;
     navigator.mediaSession.metadata = new MediaMetadata({
@@ -570,10 +629,8 @@
     curIdx = idx; const t = queue[idx]; curId = t.id;
     let srcUrl = '';
     if (t.source === 'local') {
-      const item = await dbGet(t.id);
-      if (!item) { alert('Файл не найден в памяти'); return; }
-      const blob = item.buf ? new Blob([item.buf], { type: item.type || 'audio/mpeg' }) : item;
-      srcUrl = await new Promise(r => { const fr = new FileReader(); fr.onload = () => r(fr.result); fr.readAsDataURL(blob); });
+      srcUrl = t.localPath ? await readRealMp3Url(t.localPath) : null;
+      if (!srcUrl) { alert('Файл не найден в папке Documents/SpiderPlayer'); return; }
     } else if (t.source === 'pc') {
       srcUrl = `http://${state.pcIp}/api/stream?path=${encodeURIComponent(t.pcPath)}`;
     }
@@ -719,24 +776,29 @@
 
   async function handleBgFile(files) {
     const file = files && files.item(0);
-    if (!file) return;
+    const fs = FS();
+    if (!file || !fs) return;
+    await ensureAppFolder();
     const buf = await file.arrayBuffer();
-    await dbPut('custom_bg_data', { buf, type: file.type || 'image/gif' });
-    state.hasBg = true; saveState(); applyEffects();
+    await fs.writeFile({ path: `${APP_DIR}/bg.b64`, data: JSON.stringify({ b64: bufToBase64(buf), type: file.type || 'image/gif' }), directory: 'DOCUMENTS', encoding: 'utf8', recursive: true });
+    state.hasBg = true; await saveState(); applyEffects();
   }
-  async function clearBg() { await dbPut('custom_bg_data', null); state.hasBg = false; saveState(); applyEffects(); }
+  async function clearBg() {
+    const fs = FS();
+    if (fs) { try { await fs.deleteFile({ path: `${APP_DIR}/bg.b64`, directory: 'DOCUMENTS' }); } catch (e) {} }
+    state.hasBg = false; await saveState(); applyEffects();
+  }
   function toggleBlur(v) { state.blur = v; saveState(); applyEffects(); }
   function toggleSnow(v) { state.snow = v; saveState(); applyEffects(); }
   async function applyEffects() {
     const bg = document.getElementById('bgLayer');
-    if (state.hasBg && db) {
-      const item = await dbGet('custom_bg_data');
-      if (item && item.buf) {
-        const blob = new Blob([item.buf], { type: item.type });
-        const reader = new FileReader();
-        reader.onload = () => { bg.style.backgroundImage = `url('${reader.result}')`; };
-        reader.readAsDataURL(blob);
-      }
+    const fs = FS();
+    if (state.hasBg && fs) {
+      try {
+        const res = await fs.readFile({ path: `${APP_DIR}/bg.b64`, directory: 'DOCUMENTS', encoding: 'utf8' });
+        const obj = JSON.parse(res.data);
+        bg.style.backgroundImage = `url('data:${obj.type};base64,${obj.b64}')`;
+      } catch (e) { bg.style.backgroundImage = 'none'; }
     } else { bg.style.backgroundImage = 'none'; }
     bg.classList.toggle('blurred', !!state.blur);
     document.getElementById('blurToggle').checked = !!state.blur;
