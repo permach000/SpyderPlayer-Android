@@ -1,4 +1,4 @@
-<!-- === БЛОК 1: ШАПКА И БАЗОВЫЕ СТИЛИ === -->
+<!-- === БЛОК 1: ШАПКА, ТЕМНО-КРАСНАЯ ТЕМА И ПЛАВНЫЕ АНИМАЦИИ === -->
 <!DOCTYPE html>
 <html lang="ru">
 <head>
@@ -6,60 +6,69 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
 <title>SpiderPlayer</title>
 <style>
-  :root { --bg: #0f0f0f; --card: rgba(25,25,25,0.75); --accent: #e50914; --accent-hover: #ff1e27; --text: #fff; --dim: #aaa; }
+  :root { --bg: #0c0c0c; --card: rgba(22,22,22,0.78); --accent: #b80710; --accent-hover: #d40a14; --text: #fff; --dim: #a0a0a0; }
   * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, 'Segoe UI', Roboto, sans-serif; -webkit-tap-highlight-color: transparent; user-select: none; }
   body { background: var(--bg); color: var(--text); height: 100dvh; display: flex; flex-direction: column; overflow: hidden; position: relative; }
-  .bg-layer { position: fixed; inset: -15px; background-size: cover; background-position: center; z-index: -2; transition: filter 0.3s; }
-  .bg-layer.blurred { filter: blur(14px) brightness(0.65); }
-  .bg-overlay { position: fixed; inset: 0; background: rgba(8,8,8,0.62); z-index: -1; pointer-events: none; }
+  .bg-layer { position: fixed; inset: -16px; background-size: cover; background-position: center; z-index: -2; transition: filter 0.35s ease, opacity 0.35s ease; }
+  .bg-layer.blurred { filter: blur(15px) brightness(0.6); }
+  .bg-overlay { position: fixed; inset: 0; background: rgba(6,6,6,0.62); z-index: -1; pointer-events: none; }
   #snowCanvas { position: fixed; inset: 0; pointer-events: none; z-index: 40; display: none; }
-  .sticker { display: inline-flex; align-items: center; justify-content: center; filter: drop-shadow(0 0 1.5px #fff) drop-shadow(0 2px 4px rgba(0,0,0,0.85)); vertical-align: middle; }
+  .sticker { display: inline-flex; align-items: center; justify-content: center; filter: drop-shadow(0 0 1.4px #fff) drop-shadow(0 2px 4px rgba(0,0,0,0.9)); vertical-align: middle; transition: transform 0.2s cubic-bezier(0.22, 1, 0.36, 1); }
   .sticker svg { width: 100%; height: 100%; display: block; }
-  /* === БЛОК 2: ВЕРХНЯЯ ПАНЕЛЬ И СПИСКИ === */
-  .topbar { padding: calc(12px + env(safe-area-inset-top)) 16px 10px; display: flex; align-items: center; justify-content: space-between; background: rgba(10,10,10,0.8); backdrop-filter: blur(10px); border-bottom: 1px solid rgba(255,255,255,0.08); z-index: 5; }
-  .logo { font-size: 19px; font-weight: 800; display: flex; align-items: center; gap: 8px; }
-  .top-actions { display: flex; gap: 8px; }
-  .icon-pill { background: rgba(255,255,255,0.1); border: none; color: #fff; padding: 6px 10px; border-radius: 8px; font-size: 12px; font-weight: 600; display: flex; align-items: center; gap: 5px; }
-  .icon-pill.red { background: var(--accent); }
+  button:active { transform: scale(0.94); }
+  /* === БЛОК 2: ВЕРХНЯЯ ПАНЕЛЬ, КАРТОЧКИ ТРЕКОВ И АНИМАЦИИ === */
+  .topbar { padding: calc(12px + env(safe-area-inset-top)) 16px 10px; display: flex; align-items: center; justify-content: space-between; background: rgba(10,10,10,0.82); backdrop-filter: blur(12px); border-bottom: 1px solid rgba(255,255,255,0.07); z-index: 5; }
+  .logo { font-size: 19px; font-weight: 800; display: flex; align-items: center; gap: 8px; letter-spacing: 0.3px; }
+  .icon-pill { background: rgba(255,255,255,0.09); border: 1px solid rgba(255,255,255,0.06); color: #fff; padding: 7px 11px; border-radius: 9px; font-size: 12px; font-weight: 600; display: inline-flex; align-items: center; gap: 5px; transition: background 0.2s, transform 0.15s; }
+  .icon-pill.red { background: var(--accent); border-color: rgba(255,255,255,0.12); }
   .pages { flex: 1; overflow: hidden; position: relative; z-index: 2; }
-  .page { position: absolute; inset: 0; overflow-y: auto; padding: 14px 16px 150px; display: none; flex-direction: column; gap: 10px; animation: fadeUp 0.25s ease; }
-  .page.active { display: flex; }
-  @keyframes fadeUp { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
-  .search-box { background: rgba(0,0,0,0.5); border: 1px solid rgba(255,255,255,0.15); color: #fff; padding: 10px 14px; border-radius: 10px; font-size: 14px; width: 100%; outline: none; }
-  .track { display: flex; align-items: center; gap: 12px; padding: 10px 12px; background: var(--card); border-radius: 10px; border: 1px solid rgba(255,255,255,0.05); }
-  .track.active { border-color: var(--accent); background: rgba(229,9,20,0.22); }
-  .track-cover { width: 44px; height: 44px; border-radius: 8px; background: #222; display: flex; align-items: center; justify-content: center; overflow: hidden; flex-shrink: 0; }
+  .page { position: absolute; inset: 0; overflow-y: auto; padding: 14px 16px 165px; display: none; flex-direction: column; gap: 10px; }
+  .page.active { display: flex; animation: pageEnter 0.3s cubic-bezier(0.22, 1, 0.36, 1); }
+  @keyframes pageEnter { from { opacity: 0; transform: translateY(10px) scale(0.99); } to { opacity: 1; transform: translateY(0) scale(1); } }
+  @keyframes itemSlide { from { opacity: 0; transform: translateX(-8px); } to { opacity: 1; transform: translateX(0); } }
+  .search-box { background: rgba(0,0,0,0.55); border: 1px solid rgba(255,255,255,0.14); color: #fff; padding: 10px 14px; border-radius: 10px; font-size: 14px; width: 100%; outline: none; transition: border-color 0.2s; }
+  .search-box:focus { border-color: var(--accent); }
+  .track { display: flex; align-items: center; gap: 11px; padding: 9px 12px; background: var(--card); border-radius: 11px; border: 1px solid rgba(255,255,255,0.05); transition: background 0.2s, border-color 0.2s, transform 0.15s; animation: itemSlide 0.24s ease backwards; }
+  .track.active { border-color: var(--accent); background: rgba(184, 7, 16, 0.25); }
+  .track-cover { width: 44px; height: 44px; border-radius: 8px; background: #1e1e1e; display: flex; align-items: center; justify-content: center; overflow: hidden; flex-shrink: 0; }
   .track-cover img { width: 100%; height: 100%; object-fit: cover; }
   .track-info { flex: 1; overflow: hidden; }
   .track-title { font-size: 14px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .track-artist { font-size: 12px; color: var(--dim); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .track-btn { background: none; border: 1px solid rgba(255,255,255,0.2); color: #fff; width: 30px; height: 30px; border-radius: 50%; font-size: 16px; flex-shrink: 0; }
-  /* === БЛОК 3: ВИНИЛ, ТЕКСТ, ЭКВАЛАЙЗЕР И НАВИГАЦИЯ === */
+  .track-btn { background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.16); color: #fff; width: 30px; height: 30px; border-radius: 50%; font-size: 14px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; }
+  /* === БЛОК 3: ВИНИЛ, ОЧЕРЕДЬ, ЦЕНТРАЛЬНАЯ КНОПКА +MP3 И МОДАЛКИ === */
   @keyframes spin { 100% { transform: rotate(360deg); } }
-  .vinyl-wrap { display: flex; flex-direction: column; align-items: center; gap: 14px; padding-top: 8px; text-align: center; }
-  .vinyl-disc { width: 220px; height: 220px; border-radius: 50%; background: repeating-radial-gradient(#141414 0, #141414 4px, #202020 5px, #141414 6px); border: 5px solid #080808; box-shadow: 0 12px 35px rgba(0,0,0,0.85), 0 0 25px rgba(229,9,20,0.35); display: flex; align-items: center; justify-content: center; position: relative; animation: spin 12s linear infinite; animation-play-state: paused; }
+  @keyframes popModal { from { opacity: 0; transform: scale(0.92) translateY(10px); } to { opacity: 1; transform: scale(1) translateY(0); } }
+  .vinyl-wrap { display: flex; flex-direction: column; align-items: center; gap: 12px; padding-top: 4px; text-align: center; }
+  .vinyl-disc { width: 205px; height: 205px; border-radius: 50%; background: repeating-radial-gradient(#121212 0, #121212 4px, #1e1e1e 5px, #121212 6px); border: 5px solid #070707; box-shadow: 0 14px 36px rgba(0,0,0,0.9), 0 0 28px rgba(184,7,16,0.4); display: flex; align-items: center; justify-content: center; position: relative; animation: spin 12s linear infinite; animation-play-state: paused; }
   .vinyl-disc.spinning { animation-play-state: running; }
-  .vinyl-label { width: 105px; height: 105px; border-radius: 50%; overflow: hidden; border: 3px solid var(--accent); background: #222; display: flex; align-items: center; justify-content: center; }
+  .vinyl-label { width: 98px; height: 98px; border-radius: 50%; overflow: hidden; border: 3px solid var(--accent); background: #1e1e1e; display: flex; align-items: center; justify-content: center; }
   .vinyl-label img { width: 100%; height: 100%; object-fit: cover; }
-  .vinyl-hole { position: absolute; width: 18px; height: 18px; border-radius: 50%; background: #111; border: 2px solid #444; }
-  .lyrics-box { width: 100%; background: rgba(0,0,0,0.55); border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; padding: 12px 14px; min-height: 140px; max-height: 220px; overflow-y: auto; font-size: 13px; line-height: 1.55; color: #e6e6e6; white-space: pre-wrap; text-align: left; }
-  .mini-player { position: fixed; left: 8px; right: 8px; bottom: calc(58px + env(safe-area-inset-bottom)); background: rgba(18,18,18,0.94); backdrop-filter: blur(14px); border: 1px solid rgba(255,255,255,0.12); border-radius: 14px; padding: 8px 12px; z-index: 15; display: flex; flex-direction: column; gap: 6px; box-shadow: 0 8px 25px rgba(0,0,0,0.8); transition: opacity 0.25s ease, transform 0.25s ease; }
-  body.in-vinyl .mini-player, body.in-vinyl #workerCanvas { opacity: 0; pointer-events: none; transform: translateY(20px); }
+  .vinyl-hole { position: absolute; width: 18px; height: 18px; border-radius: 50%; background: #0e0e0e; border: 2px solid #3a3a3a; }
+  .queue-box { width: 100%; background: rgba(0,0,0,0.5); border: 1px solid rgba(255,255,255,0.09); border-radius: 12px; padding: 10px 12px; max-height: 195px; overflow-y: auto; display: flex; flex-direction: column; gap: 5px; text-align: left; }
+  .q-row { display: flex; align-items: center; gap: 8px; padding: 6px 8px; border-radius: 8px; background: rgba(255,255,255,0.04); font-size: 12px; }
+  .q-row.cur { background: rgba(184,7,16,0.3); color: #ff6b73; font-weight: 700; }
+  .q-mv { background: rgba(255,255,255,0.1); border: none; color: #fff; width: 22px; height: 22px; border-radius: 5px; font-size: 10px; }
+  .mini-player { position: fixed; left: 8px; right: 8px; bottom: calc(64px + env(safe-area-inset-bottom)); background: rgba(16,16,16,0.95); backdrop-filter: blur(14px); border: 1px solid rgba(255,255,255,0.1); border-radius: 14px; padding: 8px 12px; z-index: 15; display: flex; flex-direction: column; gap: 6px; box-shadow: 0 8px 25px rgba(0,0,0,0.85); transition: opacity 0.28s ease, transform 0.28s ease; }
+  body.in-vinyl .mini-player { opacity: 0; pointer-events: none; transform: translateY(24px); }
   .mp-top { display: flex; align-items: center; gap: 10px; }
-  .mp-controls { display: flex; align-items: center; gap: 12px; }
-  .play-circle { width: 36px; height: 36px; border-radius: 50%; background: var(--accent); border: none; display: flex; align-items: center; justify-content: center; }
-  .tabbar { position: fixed; left: 0; right: 0; bottom: 0; height: calc(54px + env(safe-area-inset-bottom)); padding-bottom: env(safe-area-inset-bottom); background: #0a0a0a; border-top: 1px solid rgba(255,255,255,0.1); display: flex; z-index: 20; }
-  .tab { flex: 1; background: none; border: none; color: var(--dim); font-size: 11px; font-weight: 600; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; }
+  .mp-controls { display: flex; align-items: center; gap: 10px; }
+  .play-circle { width: 38px; height: 38px; border-radius: 50%; background: var(--accent); border: none; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 14px rgba(184,7,16,0.5); }
+  .tabbar { position: fixed; left: 0; right: 0; bottom: 0; height: calc(58px + env(safe-area-inset-bottom)); padding-bottom: env(safe-area-inset-bottom); background: #090909; border-top: 1px solid rgba(255,255,255,0.09); display: flex; align-items: center; z-index: 20; }
+  .tab { flex: 1; background: none; border: none; color: var(--dim); font-size: 10px; font-weight: 600; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; transition: color 0.2s; }
   .tab.active { color: var(--accent); }
-  .modal-bg { position: fixed; inset: 0; background: rgba(0,0,0,0.85); display: none; align-items: center; justify-content: center; z-index: 100; padding: 20px; }
-  .modal { background: #1a1a1a; border: 1px solid #333; border-radius: 14px; padding: 18px; width: 100%; max-width: 380px; display: flex; flex-direction: column; gap: 12px; }
-  .eq-sliders { display: flex; justify-content: space-between; gap: 6px; height: 110px; align-items: center; }
+  .tab-add-wrap { flex: 1; display: flex; justify-content: center; align-items: center; }
+  .tab-add-btn { width: 46px; height: 46px; border-radius: 50%; background: var(--accent); border: 2px solid rgba(255,255,255,0.18); color: #fff; font-size: 24px; font-weight: 700; display: flex; align-items: center; justify-content: center; margin-top: -14px; box-shadow: 0 6px 18px rgba(184,7,16,0.65); }
+  .modal-bg { position: fixed; inset: 0; background: rgba(0,0,0,0.85); display: none; align-items: center; justify-content: center; z-index: 100; padding: 18px; }
+  .modal-bg[style*="flex"] .modal { animation: popModal 0.22s cubic-bezier(0.22, 1, 0.36, 1); }
+  .modal { background: #181818; border: 1px solid #2e2e2e; border-radius: 16px; padding: 18px; width: 100%; max-width: 390px; display: flex; flex-direction: column; gap: 12px; }
+  .eq-sliders { display: flex; justify-content: space-between; gap: 6px; height: 105px; align-items: center; }
   .eq-col { display: flex; flex-direction: column; align-items: center; gap: 4px; flex: 1; }
-  .eq-col input[type="range"] { writing-mode: vertical-lr; direction: rtl; width: 6px; height: 85px; accent-color: var(--accent); }
+  .eq-col input[type="range"] { writing-mode: vertical-lr; direction: rtl; width: 6px; height: 80px; accent-color: var(--accent); }
   .eq-col span { font-size: 10px; color: var(--dim); }
 </style>
 </head>
-<!-- === БЛОК 4: HTML РАЗМЕТКА ЭКРАНОВ === -->
+<!-- === БЛОК 4: HTML РАЗМЕТКА ЭКРАНОВ И ПАНЕЛИ ВИНИЛА === -->
 <body>
 <div class="bg-layer" id="bgLayer"></div>
 <div class="bg-overlay"></div>
@@ -67,14 +76,12 @@
 
 <div class="topbar">
   <div class="logo"><span class="sticker" style="width:24px;height:24px;" data-ico="crown"></span> SpiderPlayer</div>
-  <div class="top-actions">
-    <button class="icon-pill" onclick="openEqModal()">🎚 Звук</button>
-    <button class="icon-pill red" onclick="document.getElementById('fileInput').click()">+ MP3</button>
-  </div>
+  <div id="sleepBadge" style="font-size:11px;color:#ff7a82;font-weight:700;"></div>
 </div>
+
 <input type="file" id="fileInput" accept=".mp3,.m4a,.wav,.ogg,audio/*" multiple hidden onchange="handleLocalFiles(this.files)">
-<input type="file" id="bgInput" accept="image/*" hidden onchange="handleBgFile(this.files)">
-<input type="file" id="plCoverInput" accept="image/*" hidden onchange="handlePlCoverFile(this.files)">
+<input type="file" id="bgInput" accept=".gif,.png,.jpg,.jpeg,.webp,image/*" hidden onchange="handleBgFile(this.files)">
+<input type="file" id="plCoverInput" accept=".png,.jpg,.jpeg,.webp,image/*" hidden onchange="handlePlCoverFile(this.files)">
 
 <div class="pages">
   <!-- ВКЛАДКА 1: ВСЕ ТРЕКИ -->
@@ -93,18 +100,21 @@
     <div id="plDetail" style="display:none;flex-direction:column;gap:10px;"></div>
   </div>
 
-  <!-- ВКЛАДКА 3: ВИНИЛ И ТЕКСТ -->
+  <!-- ВКЛАДКА 3: ВИНИЛ, ЗВУК И ОЧЕРЕДЬ -->
   <div class="page" id="pageVinyl">
     <div class="vinyl-wrap">
+      <div style="width:100%;display:flex;justify-content:flex-end;">
+        <button class="icon-pill red" onclick="openEqModal()">🎚 Звук и эффекты</button>
+      </div>
       <div class="vinyl-disc" id="vinylDisc">
-        <div class="vinyl-label" id="zenCover"><span class="sticker" style="width:54px;height:54px;" data-ico="headphones"></span></div>
+        <div class="vinyl-label" id="zenCover"><span class="sticker" style="width:52px;height:52px;" data-ico="headphones"></span></div>
         <div class="vinyl-hole"></div>
       </div>
       <div>
-        <div id="zenTitle" style="font-size:20px;font-weight:800;">Выберите трек</div>
-        <div id="zenArtist" style="font-size:14px;color:var(--dim);">—</div>
+        <div id="zenTitle" style="font-size:19px;font-weight:800;">Выберите трек</div>
+        <div id="zenArtist" style="font-size:13px;color:var(--dim);">—</div>
       </div>
-      <div style="display:flex;gap:18px;align-items:center;">
+      <div style="display:flex;gap:16px;align-items:center;">
         <button class="icon-pill" id="btnShuffle" onclick="toggleShuffle()">🔀</button>
         <button class="icon-pill" onclick="prevTrack()">⏮</button>
         <button class="play-circle" style="width:48px;height:48px;" id="zenPlayBtn" onclick="togglePlay()"><span class="sticker" style="width:22px;height:22px;" data-ico="play"></span></button>
@@ -116,24 +126,21 @@
         <canvas id="zenSeekCanvas" height="22" style="flex:1;height:22px;" onclick="seekFromCanvas(event, this)"></canvas>
         <span id="zenTotTime">0:00</span>
       </div>
-      <div style="width:100%;display:flex;justify-content:space-between;align-items:center;margin-top:4px;">
-        <span style="font-size:12px;color:var(--dim);font-weight:700;">ТЕКСТ ПЕСНИ</span>
-        <div style="display:flex;gap:6px;">
-          <button class="icon-pill" onclick="fetchOnlineLyrics()">🌐 Найти</button>
-          <button class="icon-pill" onclick="editLyricsPrompt()">✏️ Вписать</button>
-        </div>
+      <div style="width:100%;display:flex;justify-content:space-between;align-items:center;margin-top:2px;">
+        <span style="font-size:11px;color:var(--dim);font-weight:700;letter-spacing:0.5px;">ДАЛЕЕ В ОЧЕРЕДИ</span>
+        <span style="font-size:10px;color:var(--dim);">двигай ▲ ▼</span>
       </div>
-      <div class="lyrics-box" id="zenLyricsBox">Текст пока не добавлен.</div>
+      <div class="queue-box" id="zenQueueList"></div>
     </div>
   </div>
-  <!-- === БЛОК 5: ВКЛАДКА WI-FI СИНХРОНИЗАЦИИ И ТАБ-БАР === -->
+  <!-- === БЛОК 5: НАСТРОЙКИ, WI-FI ПК, ФОН И ЦЕНТРАЛЬНАЯ КНОПКА +MP3 === -->
   <div class="page" id="pageSync">
-    <h3>Настройки и Wi-Fi связь с ПК</h3>
+    <h3>Синхронизация и настройки</h3>
     <div style="background:var(--card);padding:14px;border-radius:12px;display:flex;flex-direction:column;gap:10px;">
-      <div style="font-size:13px;color:var(--dim);">Введите IP-адрес вашего ПК (из окна SpiderPlayer на Windows):</div>
+      <div style="font-size:13px;color:var(--dim);">IP-адрес вашего ПК (из окна SpiderPlayer на Windows):</div>
       <input type="text" class="search-box" id="pcIpInput" placeholder="Например: 192.168.1.15:8765">
       <button class="icon-pill red" style="justify-content:center;padding:10px;" onclick="syncFromPC()">🔄 Загрузить треки и плейлисты с ПК</button>
-      <button class="icon-pill" style="justify-content:center;color:#ff8a8a;" onclick="if(confirm('Очистить кэш треков и плейлистов в телефоне?')){localStorage.removeItem('spp_mob_state');location.reload();}">🗑 Очистить кэш треков</button>
+      <button class="icon-pill" style="justify-content:center;color:#ff8a8a;" onclick="if(confirm('Очистить кэш треков в телефоне?')){localStorage.removeItem('spp_mob_state');location.reload();}">🗑 Очистить кэш треков</button>
       <div id="syncStatus" style="font-size:12px;color:#ff8a8a;"></div>
     </div>
     <div style="background:var(--card);padding:14px;border-radius:12px;display:flex;flex-direction:column;gap:10px;">
@@ -143,12 +150,11 @@
         <button class="icon-pill" onclick="clearBg()">×</button>
       </div>
       <label style="display:flex;justify-content:space-between;font-size:13px;"><span>Размытие фона</span><input type="checkbox" id="blurToggle" onchange="toggleBlur(this.checked)"></label>
-      <label style="display:flex;justify-content:space-between;font-size:13px;"><span>❄️ Снег + Снегоуборщик</span><input type="checkbox" id="snowToggle" onchange="toggleSnow(this.checked)"></label>
+      <label style="display:flex;justify-content:space-between;font-size:13px;"><span>❄️ Снег на экране</span><input type="checkbox" id="snowToggle" onchange="toggleSnow(this.checked)"></label>
     </div>
   </div>
 </div>
 
-<canvas id="workerCanvas" style="position:fixed;left:0;bottom:calc(124px + env(safe-area-inset-bottom));width:100%;height:30px;pointer-events:none;z-index:16;"></canvas>
 <div class="mini-player">
   <div class="mp-top">
     <div class="track-cover" id="mpCover" onclick="switchTab('Vinyl')"><span class="sticker" style="width:24px;height:24px;" data-ico="headphones"></span></div>
@@ -172,14 +178,15 @@
 <div class="tabbar">
   <button class="tab active" id="tabTracks" onclick="switchTab('Tracks')">🎵<span>Треки</span></button>
   <button class="tab" id="tabPlaylists" onclick="switchTab('Playlists')">💿<span>Плейлисты</span></button>
+  <div class="tab-add-wrap"><button class="tab-add-btn" onclick="document.getElementById('fileInput').click()" title="Добавить MP3">+</button></div>
   <button class="tab" id="tabVinyl" onclick="switchTab('Vinyl')">📀<span>Винил</span></button>
   <button class="tab" id="tabSync" onclick="switchTab('Sync')">🌐<span>ПК / Фон</span></button>
 </div>
-<!-- === БЛОК 6: МОДАЛЬНЫЕ ОКНА ЭКВАЛАЙЗЕРА И ПЛЕЙЛИСТОВ === -->
+<!-- === БЛОК 6: МОДАЛЬНЫЕ ОКНА (ЗВУК, SLOWED+REVERB, ТАЙМЕР СНА) === -->
 <div class="modal-bg" id="eqModal" onclick="if(event.target===this) this.style.display='none'">
   <div class="modal">
     <div style="display:flex;justify-content:space-between;align-items:center;">
-      <h3>🎚 Эквалайзер и пространство</h3>
+      <h3>🎚 Звук и эффекты</h3>
       <label style="font-size:12px;display:flex;align-items:center;gap:5px;"><input type="checkbox" id="spaceToggle" onchange="toggleSpace(this.checked)"> 🌌 3D</label>
     </div>
     <div style="display:flex;flex-wrap:wrap;gap:6px;">
@@ -190,7 +197,24 @@
       <button class="icon-pill" onclick="applyPreset('pop')">✨ Поп</button>
     </div>
     <div class="eq-sliders" id="eqSliders"></div>
-    <button class="icon-pill" style="justify-content:center;" onclick="document.getElementById('eqModal').style.display='none'">Закрыть</button>
+    <div style="border-top:1px solid #2c2c2c;padding-top:10px;display:flex;flex-direction:column;gap:8px;">
+      <div style="display:flex;justify-content:space-between;font-size:12px;"><span>Скорость трека:</span><strong id="speedVal">1.00x</strong></div>
+      <div style="display:flex;gap:6px;">
+        <button class="icon-pill" style="flex:1;justify-content:center;" onclick="setMoodMode('slowed')">🌙 Slowed + Reverb</button>
+        <button class="icon-pill" style="flex:1;justify-content:center;" onclick="setMoodMode('normal')">1.0x Норма</button>
+        <button class="icon-pill" style="flex:1;justify-content:center;" onclick="setMoodMode('nightcore')">⚡ Nightcore</button>
+      </div>
+    </div>
+    <div style="border-top:1px solid #2c2c2c;padding-top:10px;display:flex;flex-direction:column;gap:6px;">
+      <div style="font-size:12px;color:var(--dim);">⏳ Таймер сна (остановит музыку):</div>
+      <div style="display:flex;gap:6px;">
+        <button class="icon-pill" style="flex:1;justify-content:center;" onclick="setSleepTimer(15)">15м</button>
+        <button class="icon-pill" style="flex:1;justify-content:center;" onclick="setSleepTimer(30)">30м</button>
+        <button class="icon-pill" style="flex:1;justify-content:center;" onclick="setSleepTimer(45)">45м</button>
+        <button class="icon-pill" style="flex:1;justify-content:center;" onclick="setSleepTimer(0)">Выкл</button>
+      </div>
+    </div>
+    <button class="icon-pill red" style="justify-content:center;" onclick="document.getElementById('eqModal').style.display='none'">Готово</button>
   </div>
 </div>
 
@@ -206,11 +230,11 @@
 </div>
 <audio id="audio" crossorigin="anonymous"></audio>
 <script>
-  // === БЛОК 7: СТИКЕРЫ И ЛОКАЛЬНАЯ БАЗА ДАННЫХ ТЕЛЕФОНА ===
+  // === БЛОК 7: СТИКЕРЫ, INDEXEDDB И ЧТЕНИЕ ОБЛОЖЕК ИЗ MP3 ===
   const ICONS = {
-    crown: `<svg viewBox="0 0 32 32"><path d="M4 24 L3 10 L11 16 L16 6 L21 16 L29 10 L28 24 Z" fill="#e50914" stroke="#000" stroke-width="2.8" stroke-linejoin="round"/><line x1="5" y1="27" x2="27" y2="27" stroke="#000" stroke-width="3" stroke-linecap="round"/></svg>`,
-    headphones: `<svg viewBox="0 0 32 32"><path d="M6 19 C6 10, 26 10, 26 19" fill="none" stroke="#000" stroke-width="3.5" stroke-linecap="round"/><rect x="3" y="16" width="6" height="10" rx="3" fill="#e50914" stroke="#000" stroke-width="2.5"/><rect x="23" y="16" width="6" height="10" rx="3" fill="#e50914" stroke="#000" stroke-width="2.5"/></svg>`,
-    boombox: `<svg viewBox="0 0 32 32"><path d="M10 10 L10 6 L22 6 L22 10" fill="none" stroke="#000" stroke-width="2.8" stroke-linejoin="round"/><rect x="3" y="10" width="26" height="16" rx="2" fill="#181818" stroke="#000" stroke-width="2.8"/><circle cx="9" cy="18" r="4" fill="#e50914" stroke="#000" stroke-width="2"/><circle cx="23" cy="18" r="4" fill="#e50914" stroke="#000" stroke-width="2"/><line x1="14" y1="15" x2="18" y2="15" stroke="#fff" stroke-width="2"/></svg>`,
+    crown: `<svg viewBox="0 0 32 32"><path d="M4 24 L3 10 L11 16 L16 6 L21 16 L29 10 L28 24 Z" fill="#b80710" stroke="#000" stroke-width="2.8" stroke-linejoin="round"/><line x1="5" y1="27" x2="27" y2="27" stroke="#000" stroke-width="3" stroke-linecap="round"/></svg>`,
+    headphones: `<svg viewBox="0 0 32 32"><path d="M6 19 C6 10, 26 10, 26 19" fill="none" stroke="#000" stroke-width="3.5" stroke-linecap="round"/><rect x="3" y="16" width="6" height="10" rx="3" fill="#b80710" stroke="#000" stroke-width="2.5"/><rect x="23" y="16" width="6" height="10" rx="3" fill="#b80710" stroke="#000" stroke-width="2.5"/></svg>`,
+    boombox: `<svg viewBox="0 0 32 32"><path d="M10 10 L10 6 L22 6 L22 10" fill="none" stroke="#000" stroke-width="2.8" stroke-linejoin="round"/><rect x="3" y="10" width="26" height="16" rx="2" fill="#181818" stroke="#000" stroke-width="2.8"/><circle cx="9" cy="18" r="4" fill="#b80710" stroke="#000" stroke-width="2"/><circle cx="23" cy="18" r="4" fill="#b80710" stroke="#000" stroke-width="2"/><line x1="14" y1="15" x2="18" y2="15" stroke="#fff" stroke-width="2"/></svg>`,
     play: `<svg viewBox="0 0 32 32"><path d="M8 5 L27 16 L8 27 Z" fill="#fff" stroke="#000" stroke-width="2.5" stroke-linejoin="round"/></svg>`,
     pause: `<svg viewBox="0 0 32 32"><rect x="7" y="5" width="6" height="22" rx="1" fill="#fff" stroke="#000" stroke-width="2.2"/><rect x="19" y="5" width="6" height="22" rx="1" fill="#fff" stroke="#000" stroke-width="2.2"/></svg>`
   };
@@ -220,24 +244,50 @@
   let db = null;
   function openDB() {
     return new Promise(res => {
-      const req = indexedDB.open('SpiderPlayerMobileDB', 1);
-      req.onupgradeneeded = e => { e.target.result.createObjectStore('files'); };
+      const req = indexedDB.open('SpiderPlayerMobileDB', 2);
+      req.onupgradeneeded = e => {
+        const d = e.target.result;
+        if (!d.objectStoreNames.contains('files')) d.createObjectStore('files');
+      };
       req.onsuccess = e => { db = e.target.result; res(db); };
     });
   }
-  function dbPut(key, blob) { return new Promise(res => { const tx = db.transaction('files', 'readwrite'); tx.objectStore('files').put(blob, key); tx.oncomplete = res; }); }
+  function dbPut(key, val) { return new Promise(res => { const tx = db.transaction('files', 'readwrite'); tx.objectStore('files').put(val, key); tx.oncomplete = res; }); }
   function dbGet(key) { return new Promise(res => { const tx = db.transaction('files', 'readonly'); const r = tx.objectStore('files').get(key); r.onsuccess = () => res(r.result); r.onerror = () => res(null); }); }
 
-  let state = JSON.parse(localStorage.getItem('spp_mob_state') || '{"tracks":[],"playlists":[],"bg":null,"blur":false,"snow":false,"pcIp":""}');
-  function saveState() { localStorage.setItem('spp_mob_state', JSON.stringify(state)); }
-  // === БЛОК 8: ЗАГРУЗКА MP3 В ТЕЛЕФОН И ПЕРЕКЛЮЧЕНИЕ ВКЛАДОК ===
+  async function extractMp3Cover(file) {
+    try {
+      const buf = await file.slice(0, 262144).arrayBuffer();
+      const bytes = new Uint8Array(buf);
+      for (let i = 0; i < bytes.length - 20; i++) {
+        if (bytes[i] === 0x41 && bytes[i+1] === 0x50 && bytes[i+2] === 0x49 && bytes[i+3] === 0x43) {
+          for (let j = i + 10; j < Math.min(bytes.length - 4, i + 80); j++) {
+            if ((bytes[j] === 0xFF && bytes[j+1] === 0xD8) || (bytes[j] === 0x89 && bytes[j+1] === 0x50)) {
+              const mime = bytes[j] === 0xFF ? 'image/jpeg' : 'image/png';
+              const fullBuf = await file.arrayBuffer();
+              const fullBytes = new Uint8Array(fullBuf);
+              const size = (bytes[i+4]<<24)|(bytes[i+5]<<16)|(bytes[i+6]<<8)|bytes[i+7];
+              const end = Math.min(fullBytes.length, i + 10 + size);
+              const imgBlob = new Blob([fullBytes.slice(j, end)], { type: mime });
+              return await new Promise(r => { const fr = new FileReader(); fr.onload = () => r(fr.result); fr.readAsDataURL(imgBlob); });
+            }
+          }
+        }
+      }
+    } catch (e) {}
+    return null;
+  }
+
+  let state = JSON.parse(localStorage.getItem('spp_mob_state') || '{"tracks":[],"playlists":[],"hasBg":false,"blur":false,"snow":false,"pcIp":""}');
+  function saveState() { try { localStorage.setItem('spp_mob_state', JSON.stringify(state)); } catch (e) {} }
+  // === БЛОК 8: ЗАГРУЗКА MP3 В ТЕЛЕФОН И НАВИГАЦИЯ ПО ВКЛАДКАМ ===
   const audio = document.getElementById('audio');
-  let queue = [], curIdx = -1, curId = '', activePlId = null, isShuffle = false, isRepeat = false;
+  let queue = [], curIdx = -1, curId = '', activePlId = null, isShuffle = false, repeatMode = 0;
 
   window.addEventListener('DOMContentLoaded', async () => {
     await openDB();
     document.getElementById('pcIpInput').value = state.pcIp || '';
-    applyEffects();
+    await applyEffects();
     renderTracks();
     renderPlaylists();
   });
@@ -249,17 +299,19 @@
     document.getElementById('page' + name).classList.add('active');
     document.getElementById('tab' + name).classList.add('active');
     if (name === 'Playlists') { activePlId = null; renderPlaylists(); }
+    if (name === 'Vinyl') renderZenQueue();
   }
 
   async function handleLocalFiles(files) {
     for (const f of files) {
       const id = 'loc_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6);
       await dbPut(id, f);
+      const cov = await extractMp3Cover(f);
       const cleanName = f.name.replace(/\.[^/.]+$/, '');
       const parts = cleanName.split(' - ');
       const artist = parts.length > 1 ? parts.trim() : 'Неизвестный исполнитель';
       const title = parts.length > 1 ? parts.slice(1).join(' - ').trim() : cleanName;
-      state.tracks.push({ id, title, artist, source: 'local', lyrics: '' });
+      state.tracks.push({ id, title, artist, source: 'local', cover: cov });
     }
     saveState();
     renderTracks();
@@ -270,18 +322,18 @@
     const list = document.getElementById('trackList');
     list.innerHTML = '';
     const filtered = state.tracks.filter(t => t.title.toLowerCase().includes(q) || t.artist.toLowerCase().includes(q));
-    if (!filtered.length) { list.innerHTML = '<div style="text-align:center;color:#888;margin-top:40px;">Пусто. Нажмите «+ MP3» сверху или загрузите музыку с ПК во вкладке «ПК / Фон».</div>'; return; }
+    if (!filtered.length) { list.innerHTML = '<div style="text-align:center;color:#888;margin-top:40px;">Пусто. Нажмите красную кнопку «+» снизу или загрузите музыку с ПК во вкладке «ПК / Фон».</div>'; return; }
     filtered.forEach((t, idx) => {
       const div = document.createElement('div');
       div.className = 'track' + (t.id === curId ? ' active' : '');
-      div.onclick = () => { queue = filtered; playTrack(idx); };
+      div.onclick = () => { queue = [...filtered]; playTrack(idx); };
       let syncBtn = '';
       if (t.source === 'pc') {
         syncBtn = `<button class="track-btn" id="dlBtn_${t.id}" onclick="event.stopPropagation(); downloadTrackOffline('${t.id}')" title="Сохранить в телефон">📥</button>`;
       } else if (!t.pcPath) {
         syncBtn = `<button class="track-btn" id="upBtn_${t.id}" onclick="event.stopPropagation(); uploadTrackToPC('${t.id}')" title="Отправить на ПК">📤</button>`;
       } else {
-        syncBtn = `<span style="font-size:12px;opacity:0.7;" title="Есть и на ПК, и в телефоне">✅</span>`;
+        syncBtn = `<span style="font-size:12px;opacity:0.7;">✅</span>`;
       }
       div.innerHTML = `<div class="track-cover">${t.cover ? `<img src="${t.cover}">` : getSticker('headphones', 22)}</div>
         <div class="track-info"><div class="track-title">${t.title}</div><div class="track-artist">${t.artist}</div></div>
@@ -328,11 +380,11 @@
         <button class="icon-pill red" onclick="openBulkModal()">+ Треки</button>
         <button class="icon-pill" onclick="document.getElementById('plCoverInput').click()">🖼</button>
       </div>
-      ${hasOnline ? `<button class="icon-pill red" id="btnDlAllPl" style="justify-content:center;padding:9px;" onclick="downloadPlaylistOffline('${pl.id}')">📥 Скачать весь плейлист в память телефона</button>` : `<div style="font-size:12px;color:#8aff9e;text-align:center;">✅ Весь плейлист сохранен в телефоне (работает офлайн)</div>`}`;
+      ${hasOnline ? `<button class="icon-pill red" id="btnDlAllPl" style="justify-content:center;padding:9px;" onclick="downloadPlaylistOffline('${pl.id}')">📥 Скачать весь плейлист в память телефона</button>` : `<div style="font-size:12px;color:#8aff9e;text-align:center;">✅ Весь плейлист сохранен в телефоне</div>`}`;
       plTracks.forEach((t, idx) => {
         const d = document.createElement('div');
         d.className = 'track' + (t.id === curId ? ' active' : '');
-        d.onclick = () => { queue = plTracks; playTrack(idx); };
+        d.onclick = () => { queue = [...plTracks]; playTrack(idx); };
         const dlBtn = t.source === 'pc'
           ? `<button class="track-btn" onclick="event.stopPropagation(); downloadTrackOffline('${t.id}')">📥</button>`
           : `<span style="font-size:12px;opacity:0.7;">✅</span>`;
@@ -369,19 +421,13 @@
     const file = files && files.item(0);
     if (!file || !activePlId) return;
     const r = new FileReader();
-    r.onload = () => {
-      const pl = state.playlists.find(p => p.id === activePlId);
-      if (pl) { pl.cover = r.result; saveState(); renderPlaylists(); }
-    };
+    r.onload = () => { const pl = state.playlists.find(p => p.id === activePlId); if (pl) { pl.cover = r.result; saveState(); renderPlaylists(); } };
     r.readAsDataURL(file);
   }
 
   function hashPath(str) {
     let h = 2166136261;
-    for (let i = 0; i < str.length; i++) {
-      h ^= str.charCodeAt(i);
-      h = Math.imul(h, 16777619);
-    }
+    for (let i = 0; i < str.length; i++) { h ^= str.charCodeAt(i); h = Math.imul(h, 16777619); }
     return 'pc_' + (h >>> 0).toString(36) + '_' + str.length;
   }
 
@@ -398,29 +444,19 @@
       for (const t of pcData.tracks) {
         const tid = hashPath(t.path);
         if (!state.tracks.some(x => x.id === tid)) {
-          state.tracks.push({ id: tid, title: t.title, artist: t.artist, source: 'pc', pcPath: t.path, lyrics: t.lyrics || '' });
+          state.tracks.push({ id: tid, title: t.title, artist: t.artist, source: 'pc', pcPath: t.path, cover: null });
           added++;
         }
       }
       for (const pl of pcData.playlists) {
         let localPl = state.playlists.find(p => p.name === pl.name);
-        if (!localPl) {
-          localPl = { id: 'pl_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6), name: pl.name, cover: null, tracks: [] };
-          state.playlists.push(localPl);
-        }
+        if (!localPl) { localPl = { id: 'pl_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6), name: pl.name, cover: null, tracks: [] }; state.playlists.push(localPl); }
         localPl.tracks = [];
-        pl.tracks.forEach(pPath => {
-          const tid = hashPath(pPath);
-          if (state.tracks.some(x => x.id === tid) && !localPl.tracks.includes(tid)) {
-            localPl.tracks.push(tid);
-          }
-        });
+        pl.tracks.forEach(pPath => { const tid = hashPath(pPath); if (state.tracks.some(x => x.id === tid) && !localPl.tracks.includes(tid)) localPl.tracks.push(tid); });
       }
       saveState(); renderTracks(); renderPlaylists();
       st.innerText = `✅ Готово! Всего треков с ПК: ${pcData.tracks.length} (новых: ${added})`;
-    } catch (e) {
-      st.innerText = '❌ Ошибка: ' + e.message;
-    }
+    } catch (e) { st.innerText = '❌ Ошибка: ' + e.message; }
   }
 
   async function downloadTrackOffline(trackId, silent = false) {
@@ -433,15 +469,10 @@
       if (!resp.ok) throw new Error('HTTP error');
       const blob = await resp.blob();
       await dbPut(t.id, blob);
-      t.source = 'local';
-      saveState();
+      t.source = 'local'; saveState();
       if (!silent) { renderTracks(); if (activePlId) renderPlaylists(); }
       return true;
-    } catch (e) {
-      if (btn) btn.innerText = '📥';
-      if (!silent) alert('Не удалось скачать трек. Проверьте связь с ПК.');
-      return false;
-    }
+    } catch (e) { if (btn) btn.innerText = '📥'; if (!silent) alert('Не удалось скачать трек.'); return false; }
   }
 
   async function downloadPlaylistOffline(plId) {
@@ -452,11 +483,9 @@
     let done = 0;
     for (const t of toDownload) {
       if (btn) btn.innerText = `⏳ Скачивание: ${done + 1} из ${toDownload.length}...`;
-      const ok = await downloadTrackOffline(t.id, true);
-      if (ok) done++;
+      if (await downloadTrackOffline(t.id, true)) done++;
     }
-    renderTracks();
-    renderPlaylists();
+    renderTracks(); renderPlaylists();
     alert(`Готово! Сохранено в телефон: ${done} из ${toDownload.length} треков.`);
   }
 
@@ -468,26 +497,56 @@
     if (btn) btn.innerText = '⏳';
     try {
       const blob = await dbGet(t.id);
-      if (!blob) { alert('Файл не найден в памяти телефона'); return; }
+      if (!blob) return;
       const fileName = `${t.artist !== 'Неизвестный исполнитель' ? t.artist + ' - ' : ''}${t.title}.mp3`;
-      const resp = await fetch(`http://${state.pcIp}/api/upload?filename=${encodeURIComponent(fileName)}`, {
-        method: 'POST',
-        body: blob
-      });
+      const resp = await fetch(`http://${state.pcIp}/api/upload?filename=${encodeURIComponent(fileName)}`, { method: 'POST', body: blob });
       const data = await resp.json();
-      if (data.ok) {
-        t.pcPath = data.path;
-        saveState();
-        renderTracks();
-      } else {
-        throw new Error('Upload failed');
-      }
-    } catch (e) {
-      if (btn) btn.innerText = '📤';
-      alert('Не удалось отправить на ПК. Проверьте Wi-Fi и что плеер на ПК запущен.');
+      if (data.ok) { t.pcPath = data.path; saveState(); renderTracks(); }
+    } catch (e) { if (btn) btn.innerText = '📤'; alert('Не удалось отправить на ПК.'); }
+  }
+  // === БЛОК 11: ВОСПРОИЗВЕДЕНИЕ, ОЧЕРЕДЬ ВИНИЛА И ШТОРКА SAMSUNG ===
+  function updateMediaSession(track, coverUrl) {
+    if (!('mediaSession' in navigator)) return;
+    navigator.mediaSession.metadata = new MediaMetadata({
+      title: track.title,
+      artist: track.artist,
+      album: 'SpiderPlayer',
+      artwork: coverUrl ? [{ src: coverUrl, sizes: '512x512', type: 'image/png' }] : []
+    });
+    navigator.mediaSession.setActionHandler('play', () => togglePlay());
+    navigator.mediaSession.setActionHandler('pause', () => togglePlay());
+    navigator.mediaSession.setActionHandler('previoustrack', () => prevTrack());
+    navigator.mediaSession.setActionHandler('nexttrack', () => nextTrack());
+  }
+
+  function moveQueueOffset(fromOffset, toOffset) {
+    if (fromOffset < 1 || toOffset < 1 || fromOffset >= queue.length || toOffset >= queue.length || fromOffset === toOffset) return;
+    const playingTrack = queue[curIdx];
+    const fromIdx = (curIdx + fromOffset) % queue.length;
+    const [moved] = queue.splice(fromIdx, 1);
+    const curAfter = queue.indexOf(playingTrack);
+    queue.splice((curAfter + toOffset) % (queue.length + 1), 0, moved);
+    curIdx = queue.indexOf(playingTrack);
+    renderZenQueue();
+  }
+
+  function renderZenQueue() {
+    const box = document.getElementById('zenQueueList');
+    if (!box) return;
+    box.innerHTML = '';
+    if (!queue.length) { box.innerHTML = '<div style="color:#777;font-size:12px;">Очередь пуста</div>'; return; }
+    for (let offset = 0; offset < queue.length; offset++) {
+      const idx = (curIdx + offset) % queue.length;
+      const t = queue[idx];
+      const row = document.createElement('div');
+      row.className = 'q-row' + (offset === 0 ? ' cur' : '');
+      row.onclick = (e) => { if (!e.target.closest('.q-mv')) playTrack(idx); };
+      const btns = offset > 0 ? `<button class="q-mv" onclick="moveQueueOffset(${offset},${offset-1})">▲</button><button class="q-mv" onclick="moveQueueOffset(${offset},${offset+1})">▼</button>` : '';
+      row.innerHTML = `<span style="width:16px;">${offset === 0 ? '▶' : offset}</span><span style="flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${t.title}</span>${btns}`;
+      box.appendChild(row);
     }
   }
-  // === БЛОК 11: ВОСПРОИЗВЕДЕНИЕ, ТЕКСТЫ И ЭКВАЛАЙЗЕР ===
+
   async function playTrack(idx) {
     if (idx < 0 || idx >= queue.length) return;
     initAudioEngine();
@@ -496,12 +555,14 @@
     let srcUrl = '';
     if (t.source === 'local') {
       const blob = await dbGet(t.id);
-      if (!blob) { alert('Файл не найден в памяти'); return; }
+      if (!blob) { alert('Файл не найден'); return; }
       srcUrl = URL.createObjectURL(blob);
     } else if (t.source === 'pc') {
       srcUrl = `http://${state.pcIp}/api/stream?path=${encodeURIComponent(t.pcPath)}`;
     }
-    audio.src = srcUrl; audio.play();
+    audio.src = srcUrl;
+    audio.playbackRate = currentRate;
+    audio.play();
     setPlayingUI(true);
     document.getElementById('mpTitle').innerText = t.title;
     document.getElementById('mpArtist').innerText = t.artist;
@@ -510,8 +571,9 @@
     const curPl = activePlId ? state.playlists.find(p => p.id === activePlId) : null;
     const cov = t.cover || (curPl && curPl.cover) || null;
     document.getElementById('mpCover').innerHTML = cov ? `<img src="${cov}">` : getSticker('headphones', 24);
-    document.getElementById('zenCover').innerHTML = cov ? `<img src="${cov}">` : getSticker('headphones', 54);
-    document.getElementById('zenLyricsBox').innerText = t.lyrics || 'Текст пока не добавлен.';
+    document.getElementById('zenCover').innerHTML = cov ? `<img src="${cov}">` : getSticker('headphones', 52);
+    updateMediaSession(t, cov);
+    renderZenQueue();
     renderTracks();
   }
 
@@ -519,39 +581,20 @@
     document.getElementById('mpPlayBtn').innerHTML = getSticker(on ? 'pause' : 'play', 18);
     document.getElementById('zenPlayBtn').innerHTML = getSticker(on ? 'pause' : 'play', 22);
     document.getElementById('vinylDisc').classList.toggle('spinning', on);
+    if ('mediaSession' in navigator) navigator.mediaSession.playbackState = on ? 'playing' : 'paused';
   }
   function togglePlay() {
-    if (curIdx === -1 && state.tracks.length) { queue = state.tracks; playTrack(0); return; }
+    if (curIdx === -1 && state.tracks.length) { queue = [...state.tracks]; playTrack(0); return; }
     if (audio.paused) { if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume(); audio.play(); setPlayingUI(true); }
     else { audio.pause(); setPlayingUI(false); }
   }
   function nextTrack() { if (queue.length) playTrack(isShuffle ? Math.floor(Math.random() * queue.length) : (curIdx + 1) % queue.length); }
   function prevTrack() { if (queue.length) playTrack((curIdx - 1 + queue.length) % queue.length); }
   function toggleShuffle() { isShuffle = !isShuffle; document.getElementById('btnShuffle').classList.toggle('red', isShuffle); }
-  function toggleRepeat() { isRepeat = !isRepeat; document.getElementById('btnRepeat').classList.toggle('red', isRepeat); }
-  audio.addEventListener('ended', () => { if (isRepeat) { audio.currentTime = 0; audio.play(); } else nextTrack(); });
-
-  function editLyricsPrompt() {
-    const t = state.tracks.find(x => x.id === curId);
-    if (!t) return;
-    const txt = prompt('Вставьте текст песни:', t.lyrics || '');
-    if (txt !== null) { t.lyrics = txt; saveState(); document.getElementById('zenLyricsBox').innerText = txt || 'Текст пока не добавлен.'; }
-  }
-  async function fetchOnlineLyrics() {
-    const t = state.tracks.find(x => x.id === curId);
-    if (!t) return;
-    const box = document.getElementById('zenLyricsBox'); box.innerText = '⏳ Ищем текст...';
-    try {
-      const q = encodeURIComponent(`${t.artist === 'Неизвестный исполнитель' ? '' : t.artist} ${t.title}`.replace(/\(.*?\)|\[.*?\]/g, '').trim());
-      const r = await fetch(`https://lrclib.net{q}`);
-      const arr = await r.json();
-      const found = arr.find(x => x.plainLyrics);
-      if (found) { t.lyrics = found.plainLyrics; saveState(); box.innerText = found.plainLyrics; }
-      else box.innerText = '❌ Текст не найден. Нажмите «✏️ Вписать».';
-    } catch { box.innerText = '❌ Ошибка сети.'; }
-  }
-  // === БЛОК 12: ЭКВАЛАЙЗЕР, ВОЛНА ПЕРЕМОТКИ, СНЕГ И ЧЕЛОВЕЧЕК ===
-  let audioCtx = null, analyser = null, freqData = new Uint8Array(32), eqFilters = [], wetGain = null, panNode = null, angle = 0, spaceOn = false;
+  function toggleRepeat() { repeatMode = (repeatMode + 1) % 3; const b = document.getElementById('btnRepeat'); b.classList.toggle('red', repeatMode > 0); b.innerText = repeatMode === 2 ? '🔂' : '🔁'; }
+  audio.addEventListener('ended', () => { if (repeatMode === 2) { audio.currentTime = 0; audio.play(); } else if (repeatMode === 1 || isShuffle || curIdx + 1 < queue.length) nextTrack(); else setPlayingUI(false); });
+  // === БЛОК 12А: ЭКВАЛАЙЗЕР, SLOWED+REVERB И ТАЙМЕР СНА ===
+  let audioCtx = null, analyser = null, freqData = new Uint8Array(32), eqFilters = [], wetGain = null, panNode = null, angle = 0, spaceOn = false, currentRate = 1.0, sleepTimerId = null;
   const BANDS = new Array(60, 170, 400, 1000, 3500, 12000);
   const PRESETS = { flat: new Array(6).fill(0), bass_high: [8, 5, -1, 0, 4, 7], rap: [7, 4, -2, 1, 3, 5], rock: [5, 3, -2, 2, 4, 6], pop: [-1, 2, 4, 3, 2, 4] };
   let gains = [...PRESETS.flat];
@@ -568,7 +611,24 @@
     document.getElementById('eqModal').style.display = 'flex';
   }
   function applyPreset(name) { gains = [...PRESETS[name]]; gains.forEach((v, i) => { if (eqFilters[i]) eqFilters[i].gain.value = v; }); openEqModal(); }
-  function toggleSpace(on) { spaceOn = on; if (audioCtx && wetGain) wetGain.gain.setTargetAtTime(on ? 0.35 : 0, audioCtx.currentTime, 0.05); }
+  function toggleSpace(on) { spaceOn = on; if (audioCtx && wetGain) wetGain.gain.setTargetAtTime(on ? 0.38 : 0, audioCtx.currentTime, 0.05); }
+
+  function setMoodMode(mode) {
+    if (mode === 'slowed') { currentRate = 0.85; document.getElementById('spaceToggle').checked = true; toggleSpace(true); }
+    else if (mode === 'nightcore') { currentRate = 1.18; document.getElementById('spaceToggle').checked = false; toggleSpace(false); }
+    else { currentRate = 1.0; document.getElementById('spaceToggle').checked = false; toggleSpace(false); }
+    audio.playbackRate = currentRate;
+    document.getElementById('speedVal').innerText = currentRate.toFixed(2) + 'x';
+  }
+
+  function setSleepTimer(mins) {
+    if (sleepTimerId) { clearTimeout(sleepTimerId); sleepTimerId = null; }
+    const badge = document.getElementById('sleepBadge');
+    if (mins > 0) {
+      badge.innerText = `⏳ Сон: ${mins}м`;
+      sleepTimerId = setTimeout(() => { audio.pause(); setPlayingUI(false); badge.innerText = ''; }, mins * 60000);
+    } else { badge.innerText = ''; }
+  }
 
   function initAudioEngine() {
     if (audioCtx) return;
@@ -584,17 +644,16 @@
     analyser = audioCtx.createAnalyser(); analyser.fftSize = 64;
     prev.connect(analyser); analyser.connect(audioCtx.destination);
     freqData = new Uint8Array(analyser.frequencyBinCount);
-    const delay = audioCtx.createDelay(); delay.delayTime.value = 0.03;
-    panNode = audioCtx.createStereoPanner(); wetGain = audioCtx.createGain(); wetGain.gain.value = spaceOn ? 0.35 : 0;
+    const delay = audioCtx.createDelay(); delay.delayTime.value = 0.032;
+    panNode = audioCtx.createStereoPanner(); wetGain = audioCtx.createGain(); wetGain.gain.value = spaceOn ? 0.38 : 0;
     prev.connect(delay); delay.connect(panNode); panNode.connect(wetGain); wetGain.connect(audioCtx.destination);
     setInterval(() => { if (spaceOn && !audio.paused && panNode) { angle += 0.03; panNode.pan.setValueAtTime(Math.sin(angle) * 0.5, audioCtx.currentTime); } }, 50);
   }
-
+  // === БЛОК 12Б: ВОЛНОВАЯ ПЕРЕМОТКА, ФОН И СНЕГОПАД ===
   function seekFromCanvas(e, c) { if (!audio.duration) return; const r = c.getBoundingClientRect(); audio.currentTime = Math.max(0, Math.min(1, (e.clientX - r.left) / r.width)) * audio.duration; }
   function fmt(s) { if (!s || isNaN(s)) return '0:00'; const m = Math.floor(s/60), sc = Math.floor(s%60); return `${m}:${sc<10?'0':''}${sc}`; }
 
-  const sCanvas = document.getElementById('seekCanvas');
-  const zCanvas = document.getElementById('zenSeekCanvas');
+  const sCanvas = document.getElementById('seekCanvas'), zCanvas = document.getElementById('zenSeekCanvas');
   function drawWaveBar(canvas, prog) {
     if (!canvas || canvas.offsetParent === null) return;
     if (canvas.width !== canvas.clientWidth) canvas.width = canvas.clientWidth;
@@ -606,7 +665,7 @@
       const isP = i <= active;
       const amp = (isP && analyser && !audio.paused) ? Math.min(1, base * 0.5 + ((freqData[(i % 20) + 1] || 0) / 255) * 0.85) : base;
       const bh = Math.max(3, Math.round(amp * (h - 2)));
-      ctx.fillStyle = isP ? '#e50914' : 'rgba(255,255,255,0.22)';
+      ctx.fillStyle = isP ? '#b80710' : 'rgba(255,255,255,0.22)';
       ctx.fillRect(i * 5, (h - bh) / 2, 3, bh);
     }
   }
@@ -619,43 +678,49 @@
     }
     if (analyser && !audio.paused) analyser.getByteFrequencyData(freqData);
     const prog = audio.duration ? audio.currentTime / audio.duration : 0;
-    drawWaveBar(sCanvas, prog);
-    drawWaveBar(zCanvas, prog);
+    drawWaveBar(sCanvas, prog); drawWaveBar(zCanvas, prog);
     requestAnimationFrame(loopVisuals);
   }
   loopVisuals();
 
-  function handleBgFile(files) { if (!files) return; const r = new FileReader(); r.onload = () => { state.bg = r.result; saveState(); applyEffects(); }; r.readAsDataURL(files); }
-  function clearBg() { state.bg = null; saveState(); applyEffects(); }
+  async function handleBgFile(files) {
+    const file = files && files.item(0);
+    if (!file) return;
+    const buf = await file.arrayBuffer();
+    await dbPut('custom_bg_data', { buf, type: file.type || 'image/gif' });
+    state.hasBg = true; saveState(); applyEffects();
+  }
+  async function clearBg() { await dbPut('custom_bg_data', null); state.hasBg = false; saveState(); applyEffects(); }
   function toggleBlur(v) { state.blur = v; saveState(); applyEffects(); }
   function toggleSnow(v) { state.snow = v; saveState(); applyEffects(); }
-  function applyEffects() {
-    const bg = document.getElementById('bgLayer'); bg.style.backgroundImage = state.bg ? `url('${state.bg}')` : 'none';
-    bg.classList.toggle('blurred', !!state.blur); document.getElementById('blurToggle').checked = !!state.blur;
+  async function applyEffects() {
+    const bg = document.getElementById('bgLayer');
+    if (state.hasBg && db) {
+      const item = await dbGet('custom_bg_data');
+      if (item && item.buf) {
+        const blob = new Blob([item.buf], { type: item.type });
+        const reader = new FileReader();
+        reader.onload = () => { bg.style.backgroundImage = `url('${reader.result}')`; };
+        reader.readAsDataURL(blob);
+      }
+    } else { bg.style.backgroundImage = 'none'; }
+    bg.classList.toggle('blurred', !!state.blur);
+    document.getElementById('blurToggle').checked = !!state.blur;
     document.getElementById('snowToggle').checked = !!state.snow;
     document.getElementById('snowCanvas').style.display = state.snow ? 'block' : 'none';
   }
 
-  const snC = document.getElementById('snowCanvas'), snCtx = snC.getContext('2d'), wkC = document.getElementById('workerCanvas'), wkCtx = wkC.getContext('2d');
-  let flakes = [], pile = [], wx = 60, wdir = 1, wstep = 0;
-  function resizeAll() { snC.width = wkC.width = window.innerWidth; snC.height = window.innerHeight; wkC.height = 30; pile = new Array(Math.ceil(wkC.width / 4)).fill(0); }
-  window.addEventListener('resize', resizeAll); resizeAll();
-  for (let i = 0; i < 65; i++) flakes.push({ x: Math.random() * snC.width, y: Math.random() * snC.height, r: Math.random() * 2.5 + 1, d: Math.random() + 0.4 });
+  const snC = document.getElementById('snowCanvas'), snCtx = snC.getContext('2d');
+  let flakes = [];
+  function resizeSnow() { snC.width = window.innerWidth; snC.height = window.innerHeight; }
+  window.addEventListener('resize', resizeSnow); resizeSnow();
+  for (let i = 0; i < 65; i++) flakes.push({ x: Math.random() * snC.width, y: Math.random() * snC.height, r: Math.random() * 2.5 + 1, d: Math.random() + 0.4, s: Math.random() * 0.5 - 0.25 });
   function animSnow() {
-    snCtx.clearRect(0, 0, snC.width, snC.height); wkCtx.clearRect(0, 0, wkC.width, wkC.height);
+    snCtx.clearRect(0, 0, snC.width, snC.height);
     if (state.snow) {
-      snCtx.fillStyle = 'rgba(255,255,255,0.85)'; snCtx.beginPath();
-      for (let f of flakes) { snCtx.moveTo(f.x, f.y); snCtx.arc(f.x, f.y, f.r, 0, Math.PI * 2); f.y += f.d; if (f.y > snC.height) { f.y = -5; f.x = Math.random() * snC.width; } }
+      snCtx.fillStyle = 'rgba(255,255,255,0.82)'; snCtx.beginPath();
+      for (let f of flakes) { snCtx.moveTo(f.x, f.y); snCtx.arc(f.x, f.y, f.r, 0, Math.PI * 2); f.y += f.d; f.x += f.s; if (f.y > snC.height) { f.y = -5; f.x = Math.random() * snC.width; } }
       snCtx.fill();
-      for (let i = 0; i < 2; i++) { const idx = Math.floor(Math.random() * pile.length); if (pile[idx] < 5) pile[idx] += 0.4; }
-      wkCtx.fillStyle = '#fff';
-      for (let i = 0; i < pile.length; i++) if (pile[i] > 0) wkCtx.fillRect(i * 4, 30 - Math.ceil(pile[i]), 4, Math.ceil(pile[i]));
-      wx += wdir * 1; if (wx > wkC.width - 35) wdir = -1; if (wx < 10) wdir = 1; wstep += 0.15;
-      const col = Math.floor((wdir === 1 ? wx + 22 : wx - 4) / 4);
-      for (let c = col - 2; c <= col + 2; c++) if (c >= 0 && c < pile.length) pile[c] = 0;
-      const px = (dx, dy, w, h, c) => { wkCtx.fillStyle = c; wkCtx.fillRect(Math.round((wdir === 1 ? wx + dx * 2 : wx + (14 - dx - w) * 2)), Math.round(6 + dy * 2), w * 2, h * 2); };
-      px(3, 0, 5, 2, '#e50914'); px(2, 1, 2, 2, '#fff'); px(4, 2, 4, 3, '#ffdbac'); px(3, 5, 6, 4, '#e50914');
-      px(7, 6, 5, 1, '#8d5524'); px(11, 5, 2, 5, '#ddd'); px(Math.floor(wstep)%2?3:4, 9, 2, 3, '#111'); px(Math.floor(wstep)%2?7:6, 9, 2, 3, '#111');
     }
     requestAnimationFrame(animSnow);
   }
