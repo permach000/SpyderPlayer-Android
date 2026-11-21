@@ -367,6 +367,15 @@
     r.readAsDataURL(files);
   }
 
+   function hashPath(str) {
+    let h = 2166136261;
+    for (let i = 0; i < str.length; i++) {
+      h ^= str.charCodeAt(i);
+      h = Math.imul(h, 16777619);
+    }
+    return 'pc_' + (h >>> 0).toString(36) + '_' + str.length;
+  }
+
   async function syncFromPC() {
     const ip = document.getElementById('pcIpInput').value.trim().replace(/^https?:\/\//, '');
     if (!ip) return;
@@ -378,23 +387,30 @@
       const pcData = await res.json();
       let added = 0;
       for (const t of pcData.tracks) {
-        if (!state.tracks.some(x => x.pcPath === t.path)) {
-          state.tracks.push({ id: 'pc_' + btoa(unescape(encodeURIComponent(t.path))).slice(-24), title: t.title, artist: t.artist, source: 'pc', pcPath: t.path, lyrics: t.lyrics || '' });
+        const tid = hashPath(t.path);
+        if (!state.tracks.some(x => x.id === tid)) {
+          state.tracks.push({ id: tid, title: t.title, artist: t.artist, source: 'pc', pcPath: t.path, lyrics: t.lyrics || '' });
           added++;
         }
       }
       for (const pl of pcData.playlists) {
         let localPl = state.playlists.find(p => p.name === pl.name);
-        if (!localPl) { localPl = { id: 'pl_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6), name: pl.name, cover: pl.cover || null, tracks: [] }; state.playlists.push(localPl); }
+        if (!localPl) {
+          localPl = { id: 'pl_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6), name: pl.name, cover: null, tracks: [] };
+          state.playlists.push(localPl);
+        }
+        localPl.tracks = [];
         pl.tracks.forEach(pPath => {
-          const found = state.tracks.find(x => x.pcPath === pPath);
-          if (found && !localPl.tracks.includes(found.id)) localPl.tracks.push(found.id);
+          const tid = hashPath(pPath);
+          if (state.tracks.some(x => x.id === tid) && !localPl.tracks.includes(tid)) {
+            localPl.tracks.push(tid);
+          }
         });
       }
-      saveState(); renderTracks();
-      st.innerText = `✅ Готово! Добавлено треков с ПК: ${added}`;
+      saveState(); renderTracks(); renderPlaylists();
+      st.innerText = `✅ Готово! Всего треков с ПК: ${pcData.tracks.length} (новых: ${added})`;
     } catch (e) {
-      st.innerText = '❌ Нет связи с ПК. Проверьте IP и что SpiderPlayer на ПК запущен.';
+      st.innerText = '❌ Ошибка: ' + e.message;
     }
   }
 
