@@ -232,7 +232,7 @@
     </div>
   </div>
 </div>
-<audio id="audio" crossorigin="anonymous"></audio>
+<audio id="audio"></audio>
 <script>
   // === БЛОК 7: СТИКЕРЫ, INDEXEDDB И ЧТЕНИЕ ОБЛОЖЕК ИЗ MP3 ===
   const ICONS = {
@@ -259,20 +259,28 @@
   function dbPut(key, val) { return new Promise(res => { const tx = db.transaction('files', 'readwrite'); tx.objectStore('files').put(val, key); tx.oncomplete = res; }); }
   function dbGet(key) { return new Promise(res => { const tx = db.transaction('files', 'readonly'); const r = tx.objectStore('files').get(key); r.onsuccess = () => res(r.result); r.onerror = () => res(null); }); }
 
-  async function extractMp3Cover(file) {
+  async function extractMp3CoverFromBuffer(arrayBuf) {
     try {
-      const buf = await file.slice(0, 262144).arrayBuffer();
-      const bytes = new Uint8Array(buf);
-      for (let i = 0; i < bytes.length - 20; i++) {
+      const bytes = new Uint8Array(arrayBuf);
+      const limit = Math.min(bytes.length - 20, 600000);
+      for (let i = 0; i < limit; i++) {
         if (bytes[i] === 0x41 && bytes[i+1] === 0x50 && bytes[i+2] === 0x49 && bytes[i+3] === 0x43) {
-          for (let j = i + 10; j < Math.min(bytes.length - 4, i + 80); j++) {
-            if ((bytes[j] === 0xFF && bytes[j+1] === 0xD8) || (bytes[j] === 0x89 && bytes[j+1] === 0x50)) {
-              const mime = bytes[j] === 0xFF ? 'image/jpeg' : 'image/png';
-              const fullBuf = await file.arrayBuffer();
-              const fullBytes = new Uint8Array(fullBuf);
-              const size = (bytes[i+4]<<24)|(bytes[i+5]<<16)|(bytes[i+6]<<8)|bytes[i+7];
-              const end = Math.min(fullBytes.length, i + 10 + size);
-              const imgBlob = new Blob([fullBytes.slice(j, end)], { type: mime });
+          for (let j = i + 10; j < Math.min(bytes.length - 4, i + 100); j++) {
+            const isJpg = (bytes[j] === 0xFF && bytes[j+1] === 0xD8 && bytes[j+2] === 0xFF);
+            const isPng = (bytes[j] === 0x89 && bytes[j+1] === 0x50 && bytes[j+2] === 0x4E && bytes[j+3] === 0x47);
+            if (isJpg || isPng) {
+              const mime = isJpg ? 'image/jpeg' : 'image/png';
+              let end = bytes.length;
+              if (isJpg) {
+                for (let k = j + 2; k < bytes.length - 1; k++) {
+                  if (bytes[k] === 0xFF && bytes[k+1] === 0xD9) { end = k + 2; break; }
+                }
+              } else {
+                for (let k = j + 8; k < bytes.length - 8; k++) {
+                  if (bytes[k] === 0x49 && bytes[k+1] === 0x45 && bytes[k+2] === 0x4E && bytes[k+3] === 0x44) { end = k + 8; break; }
+                }
+              }
+              const imgBlob = new Blob([bytes.slice(j, end)], { type: mime });
               return await new Promise(r => { const fr = new FileReader(); fr.onload = () => r(fr.result); fr.readAsDataURL(imgBlob); });
             }
           }
@@ -309,8 +317,9 @@
   async function handleLocalFiles(files) {
     for (const f of files) {
       const id = 'loc_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6);
-      await dbPut(id, f);
-      const cov = await extractMp3Cover(f);
+      const buf = await f.arrayBuffer();
+      await dbPut(id, { buf, type: f.type || 'audio/mpeg' });
+      const cov = await extractMp3CoverFromBuffer(buf);
       const cleanName = f.name.replace(/\.[^/.]+$/, '');
       const parts = cleanName.split(' - ');
       const artist = parts.length > 1 ? parts.at(0).trim() : 'Неизвестный исполнитель';
@@ -471,8 +480,10 @@
     try {
       const resp = await fetch(`http://${state.pcIp}/api/stream?path=${encodeURIComponent(t.pcPath)}`);
       if (!resp.ok) throw new Error('HTTP error');
-      const blob = await resp.blob();
-      await dbPut(t.id, blob);
+      const buf = await resp.arrayBuffer();
+      const cov = await extractMp3CoverFromBuffer(buf);
+      await dbPut(t.id, { buf, type: 'audio/mpeg' });
+      if (cov) t.cover = cov;
       t.source = 'local'; saveState();
       if (!silent) { renderTracks(); if (activePlId) renderPlaylists(); }
       return true;
@@ -500,8 +511,9 @@
     const btn = document.getElementById('upBtn_' + trackId);
     if (btn) btn.innerText = '⏳';
     try {
-      const blob = await dbGet(t.id);
-      if (!blob) return;
+      const item = await dbGet(t.id);
+      if (!item) return;
+      const blob = item.buf ? new Blob([item.buf], { type: item.type || 'audio/mpeg' }) : item;
       const fileName = `${t.artist !== 'Неизвестный исполнитель' ? t.artist + ' - ' : ''}${t.title}.mp3`;
       const resp = await fetch(`http://${state.pcIp}/api/upload?filename=${encodeURIComponent(fileName)}`, { method: 'POST', body: blob });
       const data = await resp.json();
@@ -558,16 +570,17 @@
     curIdx = idx; const t = queue[idx]; curId = t.id;
     let srcUrl = '';
     if (t.source === 'local') {
-      const blob = await dbGet(t.id);
-      if (!blob) { alert('Файл не найден'); return; }
-      srcUrl = URL.createObjectURL(blob);
+      const item = await dbGet(t.id);
+      if (!item) { alert('Файл не найден в памяти'); return; }
+      const blob = item.buf ? new Blob([item.buf], { type: item.type || 'audio/mpeg' }) : item;
+      srcUrl = await new Promise(r => { const fr = new FileReader(); fr.onload = () => r(fr.result); fr.readAsDataURL(blob); });
     } else if (t.source === 'pc') {
       srcUrl = `http://${state.pcIp}/api/stream?path=${encodeURIComponent(t.pcPath)}`;
     }
     audio.src = srcUrl;
     audio.playbackRate = currentRate;
     audio.volume = fadeEnabled ? 0.15 : 1.0;
-    audio.play();
+    await audio.play();
     setPlayingUI(true);
     document.getElementById('mpTitle').innerText = t.title;
     document.getElementById('mpArtist').innerText = t.artist;
@@ -608,6 +621,7 @@
     rock: new Array(5, 3, -2, 2, 4, 6),
     pop: new Array(-1, 2, 4, 3, 2, 4)
   };
+  let gains = [...PRESETS.flat];
 
   function openEqModal() {
     const box = document.getElementById('eqSliders'); box.innerHTML = '';
@@ -642,22 +656,24 @@
 
   function initAudioEngine() {
     if (audioCtx) return;
-    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-    const src = audioCtx.createMediaElementSource(audio);
-    let prev = src;
-    eqFilters = BANDS.map((f, i) => {
-      const flt = audioCtx.createBiquadFilter();
-      flt.type = i === 0 ? 'lowshelf' : (i === 5 ? 'highshelf' : 'peaking');
-      flt.frequency.value = f; flt.gain.value = gains[i];
-      prev.connect(flt); prev = flt; return flt;
-    });
-    analyser = audioCtx.createAnalyser(); analyser.fftSize = 64;
-    prev.connect(analyser); analyser.connect(audioCtx.destination);
-    freqData = new Uint8Array(analyser.frequencyBinCount);
-    const delay = audioCtx.createDelay(); delay.delayTime.value = 0.032;
-    panNode = audioCtx.createStereoPanner(); wetGain = audioCtx.createGain(); wetGain.gain.value = spaceOn ? 0.38 : 0;
-    prev.connect(delay); delay.connect(panNode); panNode.connect(wetGain); wetGain.connect(audioCtx.destination);
-    setInterval(() => { if (spaceOn && !audio.paused && panNode) { angle += 0.03; panNode.pan.setValueAtTime(Math.sin(angle) * 0.5, audioCtx.currentTime); } }, 50);
+    try {
+      audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      const src = audioCtx.createMediaElementSource(audio);
+      let prev = src;
+      eqFilters = BANDS.map((f, i) => {
+        const flt = audioCtx.createBiquadFilter();
+        flt.type = i === 0 ? 'lowshelf' : (i === 5 ? 'highshelf' : 'peaking');
+        flt.frequency.value = f; flt.gain.value = gains[i];
+        prev.connect(flt); prev = flt; return flt;
+      });
+      analyser = audioCtx.createAnalyser(); analyser.fftSize = 64;
+      prev.connect(analyser); analyser.connect(audioCtx.destination);
+      freqData = new Uint8Array(analyser.frequencyBinCount);
+      const delay = audioCtx.createDelay(); delay.delayTime.value = 0.032;
+      panNode = audioCtx.createStereoPanner(); wetGain = audioCtx.createGain(); wetGain.gain.value = spaceOn ? 0.38 : 0;
+      prev.connect(delay); delay.connect(panNode); panNode.connect(wetGain); wetGain.connect(audioCtx.destination);
+      setInterval(() => { if (spaceOn && !audio.paused && panNode) { angle += 0.03; panNode.pan.setValueAtTime(Math.sin(angle) * 0.5, audioCtx.currentTime); } }, 50);
+    } catch (e) { audioCtx = null; }
   }
   // === БЛОК 13: ПЛАВНОЕ ЗАТУХАНИЕ, ВОЛНОВАЯ ПЕРЕМОТКА, ФОН И СНЕГ ===
   function seekFromCanvas(e, c) { if (!audio.duration) return; const r = c.getBoundingClientRect(); audio.currentTime = Math.max(0, Math.min(1, (e.clientX - r.left) / r.width)) * audio.duration; }
