@@ -43,7 +43,8 @@
   .vinyl-label img { width: 100%; height: 100%; object-fit: cover; }
   .vinyl-hole { position: absolute; width: 18px; height: 18px; border-radius: 50%; background: #111; border: 2px solid #444; }
   .lyrics-box { width: 100%; background: rgba(0,0,0,0.55); border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; padding: 12px 14px; min-height: 140px; max-height: 220px; overflow-y: auto; font-size: 13px; line-height: 1.55; color: #e6e6e6; white-space: pre-wrap; text-align: left; }
-  .mini-player { position: fixed; left: 8px; right: 8px; bottom: calc(58px + env(safe-area-inset-bottom)); background: rgba(18,18,18,0.94); backdrop-filter: blur(14px); border: 1px solid rgba(255,255,255,0.12); border-radius: 14px; padding: 8px 12px; z-index: 15; display: flex; flex-direction: column; gap: 6px; box-shadow: 0 8px 25px rgba(0,0,0,0.8); }
+  .mini-player { position: fixed; left: 8px; right: 8px; bottom: calc(58px + env(safe-area-inset-bottom)); background: rgba(18,18,18,0.94); backdrop-filter: blur(14px); border: 1px solid rgba(255,255,255,0.12); border-radius: 14px; padding: 8px 12px; z-index: 15; display: flex; flex-direction: column; gap: 6px; box-shadow: 0 8px 25px rgba(0,0,0,0.8); transition: opacity 0.25s ease, transform 0.25s ease; }
+  body.in-vinyl .mini-player, body.in-vinyl #workerCanvas { opacity: 0; pointer-events: none; transform: translateY(20px); }
   .mp-top { display: flex; align-items: center; gap: 10px; }
   .mp-controls { display: flex; align-items: center; gap: 12px; }
   .play-circle { width: 36px; height: 36px; border-radius: 50%; background: var(--accent); border: none; display: flex; align-items: center; justify-content: center; }
@@ -110,7 +111,12 @@
         <button class="icon-pill" onclick="nextTrack()">⏭</button>
         <button class="icon-pill" id="btnRepeat" onclick="toggleRepeat()">🔁</button>
       </div>
-      <div style="width:100%;display:flex;justify-content:space-between;align-items:center;margin-top:6px;">
+      <div style="width:100%;display:flex;align-items:center;gap:8px;font-size:11px;color:var(--dim);">
+        <span id="zenCurTime">0:00</span>
+        <canvas id="zenSeekCanvas" height="22" style="flex:1;height:22px;" onclick="seekFromCanvas(event, this)"></canvas>
+        <span id="zenTotTime">0:00</span>
+      </div>
+      <div style="width:100%;display:flex;justify-content:space-between;align-items:center;margin-top:4px;">
         <span style="font-size:12px;color:var(--dim);font-weight:700;">ТЕКСТ ПЕСНИ</span>
         <div style="display:flex;gap:6px;">
           <button class="icon-pill" onclick="fetchOnlineLyrics()">🌐 Найти</button>
@@ -127,6 +133,7 @@
       <div style="font-size:13px;color:var(--dim);">Введите IP-адрес вашего ПК (из окна SpiderPlayer на Windows):</div>
       <input type="text" class="search-box" id="pcIpInput" placeholder="Например: 192.168.1.15:8765">
       <button class="icon-pill red" style="justify-content:center;padding:10px;" onclick="syncFromPC()">🔄 Загрузить треки и плейлисты с ПК</button>
+      <button class="icon-pill" style="justify-content:center;color:#ff8a8a;" onclick="if(confirm('Очистить кэш треков и плейлистов в телефоне?')){localStorage.removeItem('spp_mob_state');location.reload();}">🗑 Очистить кэш треков</button>
       <div id="syncStatus" style="font-size:12px;color:#ff8a8a;"></div>
     </div>
     <div style="background:var(--card);padding:14px;border-radius:12px;display:flex;flex-direction:column;gap:10px;">
@@ -236,6 +243,7 @@
   });
 
   function switchTab(name) {
+    document.body.classList.toggle('in-vinyl', name === 'Vinyl');
     document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
     document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
     document.getElementById('page' + name).classList.add('active');
@@ -249,7 +257,7 @@
       await dbPut(id, f);
       const cleanName = f.name.replace(/\.[^/.]+$/, '');
       const parts = cleanName.split(' - ');
-      const artist = parts.length > 1 ? parts[0].trim() : 'Неизвестный исполнитель';
+      const artist = parts.length > 1 ? parts.trim() : 'Неизвестный исполнитель';
       const title = parts.length > 1 ? parts.slice(1).join(' - ').trim() : cleanName;
       state.tracks.push({ id, title, artist, source: 'local', lyrics: '' });
     }
@@ -343,10 +351,10 @@
   }
 
   function handlePlCoverFile(files) {
-    if (!files[0] || !activePlId) return;
+    if (!files || !activePlId) return;
     const r = new FileReader();
     r.onload = () => { const pl = state.playlists.find(p => p.id === activePlId); if (pl) { pl.cover = r.result; saveState(); renderPlaylists(); } };
-    r.readAsDataURL(files[0]);
+    r.readAsDataURL(files);
   }
 
   async function syncFromPC() {
@@ -361,13 +369,13 @@
       let added = 0;
       for (const t of pcData.tracks) {
         if (!state.tracks.some(x => x.pcPath === t.path)) {
-          state.tracks.push({ id: 'pc_' + btoa(unescape(encodeURIComponent(t.path))).slice(0, 16), title: t.title, artist: t.artist, source: 'pc', pcPath: t.path, lyrics: t.lyrics || '' });
+          state.tracks.push({ id: 'pc_' + btoa(unescape(encodeURIComponent(t.path))).slice(-24), title: t.title, artist: t.artist, source: 'pc', pcPath: t.path, lyrics: t.lyrics || '' });
           added++;
         }
       }
       for (const pl of pcData.playlists) {
         let localPl = state.playlists.find(p => p.name === pl.name);
-        if (!localPl) { localPl = { id: 'pl_' + Date.now() + Math.random(), name: pl.name, cover: pl.cover || null, tracks: [] }; state.playlists.push(localPl); }
+        if (!localPl) { localPl = { id: 'pl_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6), name: pl.name, cover: pl.cover || null, tracks: [] }; state.playlists.push(localPl); }
         pl.tracks.forEach(pPath => {
           const found = state.tracks.find(x => x.pcPath === pPath);
           if (found && !localPl.tracks.includes(found.id)) localPl.tracks.push(found.id);
@@ -486,13 +494,12 @@
   function fmt(s) { if (!s || isNaN(s)) return '0:00'; const m = Math.floor(s/60), sc = Math.floor(s%60); return `${m}:${sc<10?'0':''}${sc}`; }
 
   const sCanvas = document.getElementById('seekCanvas');
-  function loopVisuals() {
-    if (audio.duration) { document.getElementById('curTime').innerText = fmt(audio.currentTime); document.getElementById('totTime').innerText = fmt(audio.duration); }
-    if (sCanvas.width !== sCanvas.clientWidth) sCanvas.width = sCanvas.clientWidth;
-    const ctx = sCanvas.getContext('2d'), w = sCanvas.width, h = sCanvas.height;
+  const zCanvas = document.getElementById('zenSeekCanvas');
+  function drawWaveBar(canvas, prog) {
+    if (!canvas || canvas.offsetParent === null) return;
+    if (canvas.width !== canvas.clientWidth) canvas.width = canvas.clientWidth;
+    const ctx = canvas.getContext('2d'), w = canvas.width, h = canvas.height;
     ctx.clearRect(0, 0, w, h);
-    if (analyser && !audio.paused) analyser.getByteFrequencyData(freqData);
-    const prog = audio.duration ? audio.currentTime / audio.duration : 0;
     const count = Math.floor(w / 5), active = Math.floor(count * prog);
     for (let i = 0; i < count; i++) {
       const base = 0.25 + 0.45 * Math.abs(Math.sin(i * 0.35) * Math.cos(i * 0.13));
@@ -502,11 +509,23 @@
       ctx.fillStyle = isP ? '#e50914' : 'rgba(255,255,255,0.22)';
       ctx.fillRect(i * 5, (h - bh) / 2, 3, bh);
     }
+  }
+
+  function loopVisuals() {
+    if (audio.duration) {
+      const cStr = fmt(audio.currentTime), tStr = fmt(audio.duration);
+      document.getElementById('curTime').innerText = cStr; document.getElementById('totTime').innerText = tStr;
+      document.getElementById('zenCurTime').innerText = cStr; document.getElementById('zenTotTime').innerText = tStr;
+    }
+    if (analyser && !audio.paused) analyser.getByteFrequencyData(freqData);
+    const prog = audio.duration ? audio.currentTime / audio.duration : 0;
+    drawWaveBar(sCanvas, prog);
+    drawWaveBar(zCanvas, prog);
     requestAnimationFrame(loopVisuals);
   }
   loopVisuals();
 
-  function handleBgFile(files) { if (!files[0]) return; const r = new FileReader(); r.onload = () => { state.bg = r.result; saveState(); applyEffects(); }; r.readAsDataURL(files[0]); }
+  function handleBgFile(files) { if (!files) return; const r = new FileReader(); r.onload = () => { state.bg = r.result; saveState(); applyEffects(); }; r.readAsDataURL(files); }
   function clearBg() { state.bg = null; saveState(); applyEffects(); }
   function toggleBlur(v) { state.blur = v; saveState(); applyEffects(); }
   function toggleSnow(v) { state.snow = v; saveState(); applyEffects(); }
