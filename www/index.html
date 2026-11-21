@@ -264,7 +264,7 @@
     saveState();
     renderTracks();
   }
-  // === БЛОК 9: ОТРИСОВКА ТРЕКОВ И ПЛЕЙЛИСТОВ ===
+   // === БЛОК 9: ОТРИСОВКА ТРЕКОВ И ПЛЕЙЛИСТОВ (С ОФЛАЙН-ЗАГРУЗКОЙ) ===
   function renderTracks() {
     const q = document.getElementById('searchInput').value.toLowerCase();
     const list = document.getElementById('trackList');
@@ -275,8 +275,12 @@
       const div = document.createElement('div');
       div.className = 'track' + (t.id === curId ? ' active' : '');
       div.onclick = () => { queue = filtered; playTrack(idx); };
+      const dlBtn = t.source === 'pc'
+        ? `<button class="track-btn" id="dlBtn_${t.id}" onclick="event.stopPropagation(); downloadTrackOffline('${t.id}')" title="Сохранить в телефон">📥</button>`
+        : `<span style="font-size:12px;opacity:0.7;" title="Сохранено в телефоне">✅</span>`;
       div.innerHTML = `<div class="track-cover">${t.cover ? `<img src="${t.cover}">` : getSticker('headphones', 22)}</div>
         <div class="track-info"><div class="track-title">${t.title}</div><div class="track-artist">${t.artist}</div></div>
+        ${dlBtn}
         <button class="track-btn" onclick="event.stopPropagation(); deleteTrack('${t.id}')">×</button>`;
       list.appendChild(div);
     });
@@ -312,23 +316,29 @@
       const pl = state.playlists.find(p => p.id === activePlId);
       if (!pl) { activePlId = null; renderPlaylists(); return; }
       const plTracks = pl.tracks.map(id => state.tracks.find(t => t.id === id)).filter(Boolean);
-      det.innerHTML = `<div style="display:flex;gap:8px;align-items:center;">
+      const hasOnline = plTracks.some(t => t.source === 'pc');
+      det.innerHTML = `<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
         <button class="icon-pill" onclick="activePlId=null;renderPlaylists()">← Назад</button>
         <strong style="flex:1;font-size:16px;">${pl.name}</strong>
         <button class="icon-pill red" onclick="openBulkModal()">+ Треки</button>
         <button class="icon-pill" onclick="document.getElementById('plCoverInput').click()">🖼</button>
-      </div>`;
+      </div>
+      ${hasOnline ? `<button class="icon-pill red" id="btnDlAllPl" style="justify-content:center;padding:9px;" onclick="downloadPlaylistOffline('${pl.id}')">📥 Скачать весь плейлист в память телефона</button>` : `<div style="font-size:12px;color:#8aff9e;text-align:center;">✅ Весь плейлист сохранен в телефоне (работает офлайн)</div>`}`;
       plTracks.forEach((t, idx) => {
         const d = document.createElement('div');
         d.className = 'track' + (t.id === curId ? ' active' : '');
         d.onclick = () => { queue = plTracks; playTrack(idx); };
+        const dlBtn = t.source === 'pc'
+          ? `<button class="track-btn" onclick="event.stopPropagation(); downloadTrackOffline('${t.id}')">📥</button>`
+          : `<span style="font-size:12px;opacity:0.7;">✅</span>`;
         d.innerHTML = `<div class="track-cover">${(t.cover || pl.cover) ? `<img src="${t.cover || pl.cover}">` : getSticker('headphones', 22)}</div>
-          <div class="track-info"><div class="track-title">${t.title}</div><div class="track-artist">${t.artist}</div></div>`;
+          <div class="track-info"><div class="track-title">${t.title}</div><div class="track-artist">${t.artist}</div></div>
+          ${dlBtn}`;
         det.appendChild(d);
       });
     }
   }
-  // === БЛОК 10: МАССОВЫЙ ВЫБОР, ОБЛОЖКИ И WI-FI СИНХРОНИЗАЦИЯ С ПК ===
+  // === БЛОК 10: МАССОВЫЙ ВЫБОР, ОБЛОЖКИ, WI-FI СИНХРОНИЗАЦИЯ И ОФЛАЙН-ЗАГРУЗКА ===
   let bulkSet = new Set();
   function openBulkModal() {
     const pl = state.playlists.find(p => p.id === activePlId);
@@ -386,6 +396,43 @@
     } catch (e) {
       st.innerText = '❌ Нет связи с ПК. Проверьте IP и что SpiderPlayer на ПК запущен.';
     }
+  }
+
+  async function downloadTrackOffline(trackId, silent = false) {
+    const t = state.tracks.find(x => x.id === trackId);
+    if (!t || t.source === 'local') return true;
+    const btn = document.getElementById('dlBtn_' + trackId);
+    if (btn) btn.innerText = '⏳';
+    try {
+      const resp = await fetch(`http://${state.pcIp}/api/stream?path=${encodeURIComponent(t.pcPath)}`);
+      if (!resp.ok) throw new Error('HTTP error');
+      const blob = await resp.blob();
+      await dbPut(t.id, blob);
+      t.source = 'local';
+      saveState();
+      if (!silent) { renderTracks(); if (activePlId) renderPlaylists(); }
+      return true;
+    } catch (e) {
+      if (btn) btn.innerText = '📥';
+      if (!silent) alert('Не удалось скачать трек. Проверьте связь с ПК.');
+      return false;
+    }
+  }
+
+  async function downloadPlaylistOffline(plId) {
+    const pl = state.playlists.find(p => p.id === plId);
+    if (!pl) return;
+    const toDownload = pl.tracks.map(id => state.tracks.find(t => t.id === id)).filter(t => t && t.source === 'pc');
+    const btn = document.getElementById('btnDlAllPl');
+    let done = 0;
+    for (const t of toDownload) {
+      if (btn) btn.innerText = `⏳ Скачивание: ${done + 1} из ${toDownload.length}...`;
+      const ok = await downloadTrackOffline(t.id, true);
+      if (ok) done++;
+    }
+    renderTracks();
+    renderPlaylists();
+    alert(`Готово! Сохранено в телефон: ${done} из ${toDownload.length} треков.`);
   }
   // === БЛОК 11: ВОСПРОИЗВЕДЕНИЕ, ТЕКСТЫ И ЭКВАЛАЙЗЕР ===
   async function playTrack(idx) {
