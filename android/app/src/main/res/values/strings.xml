@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">SpiderPlayer</string>
+    <string name="title_activity_main">SpiderPlayer</string>
+    <string name="package_name">com.spiderplayer.app</string>
+    <string name="custom_url_scheme">com.spiderplayer.app</string>
+</resources>
