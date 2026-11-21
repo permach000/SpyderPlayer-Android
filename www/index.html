@@ -71,7 +71,7 @@
     <button class="icon-pill red" onclick="document.getElementById('fileInput').click()">+ MP3</button>
   </div>
 </div>
-<input type="file" id="fileInput" accept="audio/*" multiple hidden onchange="handleLocalFiles(this.files)">
+<input type="file" id="fileInput" accept=".mp3,.m4a,.wav,.ogg,audio/*" multiple hidden onchange="handleLocalFiles(this.files)">
 <input type="file" id="bgInput" accept="image/*" hidden onchange="handleBgFile(this.files)">
 <input type="file" id="plCoverInput" accept="image/*" hidden onchange="handlePlCoverFile(this.files)">
 
@@ -444,7 +444,7 @@
   }
   // === БЛОК 12: ЭКВАЛАЙЗЕР, ВОЛНА ПЕРЕМОТКИ, СНЕГ И ЧЕЛОВЕЧЕК ===
   let audioCtx = null, analyser = null, freqData = new Uint8Array(32), eqFilters = [], wetGain = null, panNode = null, angle = 0, spaceOn = false;
-  const BANDS =;
+  const BANDS = new Array(60, 170, 400, 1000, 3500, 12000);
   const PRESETS = { flat: new Array(6).fill(0), bass_high: [8, 5, -1, 0, 4, 7], rap: [7, 4, -2, 1, 3, 5], rock: [5, 3, -2, 2, 4, 6], pop: [-1, 2, 4, 3, 2, 4] };
   let gains = [...PRESETS.flat];
 
