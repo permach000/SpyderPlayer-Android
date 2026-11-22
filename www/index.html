@@ -552,20 +552,37 @@
     const btn = document.getElementById('dlBtn_' + trackId);
     if (btn) btn.innerText = '⏳';
     try {
-      const resp = await fetch(`http://${state.pcIp}/api/stream?path=${encodeURIComponent(t.pcPath)}`);
-      if (!resp.ok) throw new Error('HTTP error');
-      const buf = await resp.arrayBuffer();
-      const cov = await extractMp3CoverFromBuffer(buf);
-      const fileName = `${t.artist !== 'Неизвестный исполнитель' ? t.artist + ' - ' : ''}${t.title}.mp3`;
-      const relPath = await saveRealMp3(fileName, buf);
-      if (!relPath) throw new Error('FS error');
+      const fs = getFS();
+      if (!fs) throw new Error('FS not found');
+      await ensureAppFolder();
+      const fileName = `${t.artist !== 'Неизвестный исполнитель' ? t.artist + ' - ' : ''}${t.title}.mp3`.replace(/[\\/:*?"<>|]/g, '_');
+      const relPath = `${APP_DIR}/${fileName}`;
+      const streamUrl = `http://${state.pcIp}/api/stream?path=${encodeURIComponent(t.pcPath)}`;
+
+      if (fs.downloadFile) {
+        await fs.downloadFile({
+          url: streamUrl,
+          path: relPath,
+          directory: 'DOCUMENTS',
+          recursive: true
+        });
+      } else {
+        const resp = await fetch(streamUrl);
+        if (!resp.ok) throw new Error('HTTP error');
+        const buf = await resp.arrayBuffer();
+        await saveRealMp3(fileName, buf);
+      }
+
       t.localPath = relPath;
-      if (cov) t.cover = cov;
       t.source = 'local';
       await saveState();
       if (!silent) { renderTracks(); if (activePlId) renderPlaylists(); }
       return true;
-    } catch (e) { if (btn) btn.innerText = '📥'; if (!silent) alert('Не удалось сохранить файл в телефон.'); return false; }
+    } catch (e) {
+      if (btn) btn.innerText = '📥';
+      if (!silent) alert('Не удалось сохранить файл в телефон.');
+      return false;
+    }
   }
 
   async function downloadPlaylistOffline(plId) {
