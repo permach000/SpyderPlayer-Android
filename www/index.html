@@ -45,21 +45,29 @@
   /* === БЛОК 3: ВИНИЛ, ОЧЕРЕДЬ, НИЖНЯЯ ПАНЕЛЬ И МОДАЛКИ === */
   @keyframes spin { 100% { transform: rotate(360deg); } }
   @keyframes popModal { from { opacity: 0; transform: scale(0.92) translateY(10px); } to { opacity: 1; transform: scale(1) translateY(0); } }
-  .vinyl-wrap { display: flex; flex-direction: column; align-items: center; gap: 12px; padding-top: 4px; text-align: center; }
+  .vinyl-wrap { display: flex; flex-direction: column; align-items: center; gap: 12px; padding-top: 4px; text-align: center; width: 100%; max-width: 100%; }
   .vinyl-disc { width: 205px; height: 205px; border-radius: 50%; background: repeating-radial-gradient(#121212 0, #121212 4px, #1e1e1e 5px, #121212 6px); border: 5px solid #070707; box-shadow: 0 14px 36px rgba(0,0,0,0.9), 0 0 28px rgba(184,7,16,0.4); display: flex; align-items: center; justify-content: center; position: relative; animation: spin 12s linear infinite; animation-play-state: paused; }
   .vinyl-disc.spinning { animation-play-state: running; }
   .vinyl-label { width: 98px; height: 98px; border-radius: 50%; overflow: hidden; border: 3px solid var(--accent); background: #1e1e1e; display: flex; align-items: center; justify-content: center; }
   .vinyl-label img { width: 100%; height: 100%; object-fit: cover; }
   .vinyl-hole { position: absolute; width: 18px; height: 18px; border-radius: 50%; background: #0e0e0e; border: 2px solid #3a3a3a; }
-  .queue-box { width: 100%; background: rgba(0,0,0,0.5); border: 1px solid rgba(255,255,255,0.09); border-radius: 12px; padding: 10px 12px; max-height: 195px; overflow-y: auto; display: flex; flex-direction: column; gap: 5px; text-align: left; }
-  .q-row { display: flex; align-items: center; gap: 8px; padding: 6px 8px; border-radius: 8px; background: rgba(255,255,255,0.04); font-size: 12px; }
+  .seek-row { width: 100%; max-width: 100%; display: flex; align-items: center; gap: 8px; font-size: 11px; color: var(--dim); overflow: hidden; }
+  .seek-time { flex-shrink: 0; min-width: 32px; font-variant-numeric: tabular-nums; }
+  .seek-time.left { text-align: left; }
+  .seek-time.right { text-align: right; }
+  .seek-wrap { flex: 1; min-width: 0; position: relative; display: flex; align-items: center; }
+  .seek-wrap canvas { width: 100%; display: block; }
+  .queue-box { width: 100%; background: rgba(0,0,0,0.5); border: 1px solid rgba(255,255,255,0.09); border-radius: 12px; padding: 10px 12px; max-height: 205px; overflow-y: auto; display: flex; flex-direction: column; gap: 6px; text-align: left; position: relative; }
+  .q-row { display: flex; align-items: center; gap: 8px; padding: 8px 10px; border-radius: 8px; background: rgba(255,255,255,0.05); font-size: 12px; transition: background 0.15s, transform 0.15s, box-shadow 0.15s; }
   .q-row.cur { background: rgba(184,7,16,0.3); color: #ff6b73; font-weight: 700; }
-  .q-mv { background: rgba(255,255,255,0.1); border: none; color: #fff; width: 22px; height: 22px; border-radius: 5px; font-size: 10px; }
-  .mini-player { position: fixed; left: 8px; right: 8px; bottom: calc(64px + env(safe-area-inset-bottom)); background: rgba(16,16,16,0.95); backdrop-filter: blur(14px); border: 1px solid rgba(255,255,255,0.1); border-radius: 14px; padding: 8px 12px; z-index: 15; display: flex; flex-direction: column; gap: 6px; box-shadow: 0 8px 25px rgba(0,0,0,0.85); transition: opacity 0.28s ease, transform 0.28s ease; }
+  .q-row.dragging { background: rgba(184,7,16,0.55); border: 1px solid var(--accent); box-shadow: 0 6px 18px rgba(0,0,0,0.85); transform: scale(1.02); z-index: 10; }
+  .q-row.drop-target { border-top: 2px solid #ff4d57; }
+  .q-drag-handle { color: var(--dim); font-size: 16px; padding: 2px 6px; cursor: grab; touch-action: none; flex-shrink: 0; }
+  .mini-player { position: fixed; left: 8px; right: 8px; bottom: calc(64px + env(safe-area-inset-bottom)); background: rgba(16,16,16,0.95); backdrop-filter: blur(14px); border: 1px solid rgba(255,255,255,0.1); border-radius: 14px; padding: 8px 12px; z-index: 15; display: flex; flex-direction: column; gap: 6px; box-shadow: 0 8px 25px rgba(0,0,0,0.85); transition: opacity 0.28s ease, transform 0.28s ease; max-width: calc(100vw - 16px); }
   body.in-vinyl .mini-player { opacity: 0; pointer-events: none; transform: translateY(24px); }
-  .mp-top { display: flex; align-items: center; gap: 10px; }
-  .mp-controls { display: flex; align-items: center; gap: 10px; }
-  .play-circle { width: 38px; height: 38px; border-radius: 50%; background: var(--accent); border: none; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 14px rgba(184,7,16,0.5); }
+  .mp-top { display: flex; align-items: center; gap: 10px; min-width: 0; }
+  .mp-controls { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+  .play-circle { width: 38px; height: 38px; border-radius: 50%; background: var(--accent); border: none; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 14px rgba(184,7,16,0.5); flex-shrink: 0; }
   .tabbar { position: fixed; left: 0; right: 0; bottom: 0; height: calc(58px + env(safe-area-inset-bottom)); padding-bottom: env(safe-area-inset-bottom); background: #090909; border-top: 1px solid rgba(255,255,255,0.09); display: flex; align-items: center; z-index: 20; }
   .tab { flex: 1; background: none; border: none; color: var(--dim); font-size: 10px; font-weight: 600; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; transition: color 0.2s; }
   .tab.active { color: var(--accent); }
@@ -113,25 +121,27 @@
         <div class="vinyl-label" id="zenCover"><span class="sticker" style="width:52px;height:52px;" data-ico="headphones"></span></div>
         <div class="vinyl-hole"></div>
       </div>
-      <div>
-        <div id="zenTitle" style="font-size:19px;font-weight:800;">Выберите трек</div>
-        <div id="zenArtist" style="font-size:13px;color:var(--dim);">—</div>
+      <div style="width:100%;padding:0 8px;">
+        <div id="zenTitle" style="font-size:19px;font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">Выберите трек</div>
+        <div id="zenArtist" style="font-size:13px;color:var(--dim);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">—</div>
       </div>
-      <div style="display:flex;gap:16px;align-items:center;">
+      <div style="display:flex;gap:14px;align-items:center;">
         <button class="icon-pill" id="btnShuffle" onclick="toggleShuffle()">🔀</button>
         <button class="icon-pill" onclick="prevTrack()">⏮</button>
         <button class="play-circle" style="width:48px;height:48px;" id="zenPlayBtn" onclick="togglePlay()"><span class="sticker" style="width:22px;height:22px;" data-ico="play"></span></button>
         <button class="icon-pill" onclick="nextTrack()">⏭</button>
         <button class="icon-pill" id="btnRepeat" onclick="toggleRepeat()">🔁</button>
       </div>
-      <div style="width:100%;display:flex;align-items:center;gap:8px;font-size:11px;color:var(--dim);">
-        <span id="zenCurTime">0:00</span>
-        <canvas id="zenSeekCanvas" height="22" style="flex:1;height:22px;" onclick="seekFromCanvas(event, this)"></canvas>
-        <span id="zenTotTime">0:00</span>
+      <div class="seek-row">
+        <span class="seek-time left" id="zenCurTime">0:00</span>
+        <div class="seek-wrap">
+          <canvas id="zenSeekCanvas" height="22" style="height:22px;" onclick="seekFromCanvas(event, this)"></canvas>
+        </div>
+        <span class="seek-time right" id="zenTotTime">0:00</span>
       </div>
       <div style="width:100%;display:flex;justify-content:space-between;align-items:center;margin-top:2px;">
         <span style="font-size:11px;color:var(--dim);font-weight:700;letter-spacing:0.5px;">ДАЛЕЕ В ОЧЕРЕДИ</span>
-        <span style="font-size:10px;color:var(--dim);">двигай ▲ ▼</span>
+        <span style="font-size:10px;color:var(--dim);">зажми ☰ и тяни</span>
       </div>
       <div class="queue-box" id="zenQueueList"></div>
     </div>
@@ -171,10 +181,12 @@
       <button class="icon-pill" onclick="nextTrack()">⏭</button>
     </div>
   </div>
-  <div style="display:flex;align-items:center;gap:8px;font-size:11px;color:var(--dim);">
-    <span id="curTime">0:00</span>
-    <canvas id="seekCanvas" height="20" style="flex:1;height:20px;" onclick="seekFromCanvas(event, this)"></canvas>
-    <span id="totTime">0:00</span>
+  <div class="seek-row">
+    <span class="seek-time left" id="curTime">0:00</span>
+    <div class="seek-wrap">
+      <canvas id="seekCanvas" height="20" style="height:20px;" onclick="seekFromCanvas(event, this)"></canvas>
+    </div>
+    <span class="seek-time right" id="totTime">0:00</span>
   </div>
 </div>
 
@@ -192,12 +204,12 @@
       <h3>🎚 Звук и эффекты</h3>
       <label style="font-size:12px;display:flex;align-items:center;gap:5px;"><input type="checkbox" id="spaceToggle" onchange="toggleSpace(this.checked)"> 🌌 3D</label>
     </div>
-    <div style="display:flex;flex-wrap:wrap;gap:6px;">
-      <button class="icon-pill" onclick="applyPreset('flat')">Обычный</button>
-      <button class="icon-pill red" onclick="applyPreset('bass_high')">🔥 Бас+Высокие</button>
-      <button class="icon-pill" onclick="applyPreset('rap')">🎤 Рэп</button>
-      <button class="icon-pill" onclick="applyPreset('rock')">🎸 Рок</button>
-      <button class="icon-pill" onclick="applyPreset('pop')">✨ Поп</button>
+    <div style="display:flex;flex-wrap:wrap;gap:6px;" id="presetBtns">
+      <button class="icon-pill red" data-preset="flat" onclick="applyPreset('flat')">Обычный</button>
+      <button class="icon-pill" data-preset="bass_high" onclick="applyPreset('bass_high')">🔥 Бас+Высокие</button>
+      <button class="icon-pill" data-preset="rap" onclick="applyPreset('rap')">🎤 Рэп</button>
+      <button class="icon-pill" data-preset="rock" onclick="applyPreset('rock')">🎸 Рок</button>
+      <button class="icon-pill" data-preset="pop" onclick="applyPreset('pop')">✨ Поп</button>
     </div>
     <div class="eq-sliders" id="eqSliders"></div>
     <label style="display:flex;justify-content:space-between;align-items:center;font-size:13px;border-top:1px solid #2c2c2c;padding-top:10px;">
@@ -618,7 +630,7 @@
       if (data.ok) { t.pcPath = data.path; await saveState(); renderTracks(); }
     } catch (e) { if (btn) btn.innerText = '📤'; alert('Не удалось отправить на ПК.'); }
   }
-  // === БЛОК 15: НАТИВНЫЙ ВИДЖЕТ SAMSUNG (ШТОРКА / AOD) И МГНОВЕННЫЙ ПЕРЕХОД В ФОНЕ ===
+  // === БЛОК 15: НАТИВНЫЙ ВИДЖЕТ SAMSUNG (ШТОРКА / AOD), ОЧЕРЕДЬ DRAG&DROP И МГНОВЕННЫЙ ПЕРЕХОД ===
   let nextPreparedUrl = '';
   let nextPreparedIdx = -1;
 
@@ -693,19 +705,70 @@
     preloadNextTrack();
   }
 
+  let dragFromOffset = null;
+  let dragTargetOffset = null;
+
   function renderZenQueue() {
     const box = document.getElementById('zenQueueList');
     if (!box) return;
     box.innerHTML = '';
     if (!queue.length) { box.innerHTML = '<div style="color:#777;font-size:12px;">Очередь пуста</div>'; return; }
+
     for (let offset = 0; offset < queue.length; offset++) {
       const idx = (curIdx + offset) % queue.length;
       const t = queue.at(idx);
       const row = document.createElement('div');
       row.className = 'q-row' + (offset === 0 ? ' cur' : '');
-      row.onclick = (e) => { if (!e.target.closest('.q-mv')) playTrack(idx); };
-      const btns = offset > 0 ? `<button class="q-mv" onclick="moveQueueOffset(${offset},${offset-1})">▲</button><button class="q-mv" onclick="moveQueueOffset(${offset},${offset+1})">▼</button>` : '';
-      row.innerHTML = `<span style="width:16px;">${offset === 0 ? '▶' : offset}</span><span style="flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${t.title}</span>${btns}`;
+      row.dataset.offset = offset;
+
+      row.onclick = (e) => {
+        if (!e.target.closest('.q-drag-handle')) playTrack(idx);
+      };
+
+      const handle = offset > 0 ? `<span class="q-drag-handle">☰</span>` : '';
+      row.innerHTML = `<span style="width:16px;flex-shrink:0;">${offset === 0 ? '▶' : offset}</span><span style="flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${t.title}</span>${handle}`;
+
+      if (offset > 0) {
+        const handleEl = row.querySelector('.q-drag-handle');
+        handleEl.addEventListener('touchstart', (e) => {
+          e.preventDefault();
+          dragFromOffset = offset;
+          dragTargetOffset = offset;
+          row.classList.add('dragging');
+        }, { passive: false });
+
+        handleEl.addEventListener('touchmove', (e) => {
+          if (dragFromOffset === null) return;
+          e.preventDefault();
+          const touch = e.touches[0];
+          const elUnder = document.elementFromPoint(touch.clientX, touch.clientY);
+          const targetRow = elUnder ? elUnder.closest('.q-row') : null;
+          box.querySelectorAll('.q-row').forEach(r => r.classList.remove('drop-target'));
+          if (targetRow && Number(targetRow.dataset.offset) > 0) {
+            dragTargetOffset = Number(targetRow.dataset.offset);
+            if (dragTargetOffset !== dragFromOffset) {
+              targetRow.classList.add('drop-target');
+            }
+          }
+        }, { passive: false });
+
+        const finishDrag = () => {
+          if (dragFromOffset === null) return;
+          row.classList.remove('dragging');
+          box.querySelectorAll('.q-row').forEach(r => r.classList.remove('drop-target'));
+          const from = dragFromOffset;
+          const to = dragTargetOffset;
+          dragFromOffset = null;
+          dragTargetOffset = null;
+          if (to !== null && from !== to) {
+            moveQueueOffset(from, to);
+          }
+        };
+
+        handleEl.addEventListener('touchend', finishDrag);
+        handleEl.addEventListener('touchcancel', finishDrag);
+      }
+
       box.appendChild(row);
     }
   }
@@ -713,7 +776,9 @@
   async function playTrack(idx, instantUrl = null) {
     if (idx < 0 || idx >= queue.length) return;
     initAudioEngine();
-    if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
+    if (audioCtx && audioCtx.state === 'suspended') {
+      try { await audioCtx.resume(); } catch (e) {}
+    }
     curIdx = idx;
     const t = queue.at(idx);
     curId = t.id;
@@ -785,6 +850,7 @@
   });
   // === БЛОК 16: ЭКВАЛАЙЗЕР, SLOWED+REVERB И ТАЙМЕР СНА ===
   let audioCtx = null, analyser = null, freqData = new Uint8Array(32), eqFilters = new Array(), wetGain = null, panNode = null, angle = 0, spaceOn = false, currentRate = 1.0, sleepTimerId = null;
+  let activePreset = 'flat';
   const BANDS = new Array(60, 170, 400, 1000, 3500, 12000);
   const PRESETS = {
     flat: new Array(0, 0, 0, 0, 0, 0),
@@ -795,18 +861,35 @@
   };
   let gains = [...PRESETS.flat];
 
+  function updatePresetButtonsUI() {
+    document.querySelectorAll('#presetBtns [data-preset]').forEach(btn => {
+      btn.classList.toggle('red', btn.dataset.preset === activePreset);
+    });
+  }
+
   function openEqModal() {
+    updatePresetButtonsUI();
     const box = document.getElementById('eqSliders'); box.innerHTML = '';
     BANDS.forEach((f, i) => {
       const col = document.createElement('div'); col.className = 'eq-col';
       const inp = document.createElement('input'); inp.type = 'range'; inp.min = -10; inp.max = 12; inp.value = gains.at(i);
-      inp.oninput = () => { gains[i] = Number(inp.value); if (eqFilters.at(i)) eqFilters.at(i).gain.value = gains.at(i); };
+      inp.oninput = () => {
+        gains[i] = Number(inp.value);
+        if (eqFilters.at(i)) eqFilters.at(i).gain.value = gains.at(i);
+        activePreset = 'custom';
+        updatePresetButtonsUI();
+      };
       const sp = document.createElement('span'); sp.innerText = f >= 1000 ? (f/1000)+'k' : f;
       col.appendChild(inp); col.appendChild(sp); box.appendChild(col);
     });
     document.getElementById('eqModal').style.display = 'flex';
   }
-  function applyPreset(name) { gains = [...PRESETS[name]]; gains.forEach((v, i) => { if (eqFilters.at(i)) eqFilters.at(i).gain.value = v; }); openEqModal(); }
+  function applyPreset(name) {
+    activePreset = name;
+    gains = [...PRESETS[name]];
+    gains.forEach((v, i) => { if (eqFilters.at(i)) eqFilters.at(i).gain.value = v; });
+    openEqModal();
+  }
   function toggleSpace(on) { spaceOn = on; if (audioCtx && wetGain) wetGain.gain.setTargetAtTime(on ? 0.38 : 0, audioCtx.currentTime, 0.05); }
 
   function setMoodMode(mode) {
@@ -847,14 +930,40 @@
       setInterval(() => { if (spaceOn && !audio.paused && panNode) { angle += 0.03; panNode.pan.setValueAtTime(Math.sin(angle) * 0.5, audioCtx.currentTime); } }, 50);
     } catch (e) { audioCtx = null; }
   }
-  // === БЛОК 17: ПЛАВНОЕ ЗАТУХАНИЕ, ВОЛНОВАЯ ПЕРЕМОТКА, ФОН И СНЕГ ===
+  // === БЛОК 17: ПЛАВНОЕ ЗАТУХАНИЕ В ФОНЕ, ВОЛНОВАЯ ПЕРЕМОТКА, ФОН И СНЕГ ===
   function seekFromCanvas(e, c) { if (!audio.duration) return; const r = c.getBoundingClientRect(); audio.currentTime = Math.max(0, Math.min(1, (e.clientX - r.left) / r.width)) * audio.duration; }
   function fmt(s) { if (!s || isNaN(s)) return '0:00'; const m = Math.floor(s/60), sc = Math.floor(s%60); return `${m}:${sc<10?'0':''}${sc}`; }
+
+  function updateAudioVolume() {
+    if (!audio.duration) return;
+    if (fadeEnabled && !audio.paused && audio.duration > 6) {
+      const rem = audio.duration - audio.currentTime;
+      if (rem <= 3.0) {
+        audio.volume = Math.max(0.05, rem / 3.0);
+      } else if (audio.currentTime < 1.5) {
+        audio.volume = Math.min(1.0, Math.max(0.15, audio.currentTime / 1.5));
+      } else if (audio.volume < 0.99) {
+        audio.volume = 1.0;
+      }
+    } else if (audio.volume < 0.99) {
+      audio.volume = 1.0;
+    }
+  }
+  setInterval(updateAudioVolume, 120);
+  audio.addEventListener('timeupdate', updateAudioVolume);
+
+  document.addEventListener('visibilitychange', () => {
+    if (audioCtx && audioCtx.state === 'suspended' && !audio.paused) {
+      audioCtx.resume().catch(() => {});
+    }
+    updateAudioVolume();
+  });
 
   const sCanvas = document.getElementById('seekCanvas'), zCanvas = document.getElementById('zenSeekCanvas');
   function drawWaveBar(canvas, prog) {
     if (!canvas || canvas.offsetParent === null) return;
-    if (canvas.width !== canvas.clientWidth) canvas.width = canvas.clientWidth;
+    const targetW = canvas.parentElement ? canvas.parentElement.clientWidth : canvas.clientWidth;
+    if (targetW > 0 && canvas.width !== targetW) canvas.width = targetW;
     const ctx = canvas.getContext('2d'), w = canvas.width, h = canvas.height;
     ctx.clearRect(0, 0, w, h);
     const count = Math.floor(w / 5), active = Math.floor(count * prog);
@@ -873,14 +982,6 @@
       const cStr = fmt(audio.currentTime), tStr = fmt(audio.duration);
       document.getElementById('curTime').innerText = cStr; document.getElementById('totTime').innerText = tStr;
       document.getElementById('zenCurTime').innerText = cStr; document.getElementById('zenTotTime').innerText = tStr;
-      if (fadeEnabled && !audio.paused && audio.duration > 6) {
-        const rem = audio.duration - audio.currentTime;
-        if (rem <= 3.0) audio.volume = Math.max(0.05, rem / 3.0);
-        else if (audio.currentTime < 1.5) audio.volume = Math.min(1.0, Math.max(0.15, audio.currentTime / 1.5));
-        else if (audio.volume < 0.99) audio.volume = 1.0;
-      } else {
-        audio.volume = 1.0;
-      }
     }
     if (analyser && !audio.paused) analyser.getByteFrequencyData(freqData);
     const prog = audio.duration ? audio.currentTime / audio.duration : 0;
